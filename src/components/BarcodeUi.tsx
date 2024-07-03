@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import "./App.css";
-import BarcodeScanner from "./components/BarcodeScanner";
+import BarcodeScanner from "@/components/BarcodeScanner";
 
-function App() {
+function BarcodeUI() {
   const [scannedData, setScannedData] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -85,4 +84,4 @@ function App() {
   );
 }
 
-export default App;
+export default BarcodeUI;

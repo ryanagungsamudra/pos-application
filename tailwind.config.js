@@ -1,12 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: ["class"],
-  content: [
-    './pages/**/*.{ts,tsx}',
-    './components/**/*.{ts,tsx}',
-    './app/**/*.{ts,tsx}',
-    './src/**/*.{ts,tsx}',
-  ],
+  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   prefix: "",
   theme: {
     container: {
@@ -17,6 +12,12 @@ module.exports = {
       },
     },
     extend: {
+      backgroundImage: {
+        "primary-gradient":
+          "linear-gradient(101.06deg, #28678C 36.86%, #80D0C7 63.14%)",
+        "secondary-gradient":
+          "linear-gradient(91.81deg, #038B09 59.47%, #64BC68 80.64%)",
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -74,4 +75,4 @@ module.exports = {
     },
   },
   plugins: [require("tailwindcss-animate")],
-}
+};
