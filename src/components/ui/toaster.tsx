@@ -5,29 +5,50 @@ import {
   ToastProvider,
   ToastTitle,
   ToastViewport,
-} from "@/components/ui/toast"
-import { useToast } from "@/components/ui/use-toast"
+} from "@/components/ui/toast";
+import { useToast } from "@/components/ui/use-toast";
+import Lottie from "lottie-react";
+import ChecklistOnly from "@/assets/lottie/checklist-only.json";
 
 export function Toaster() {
-  const { toasts } = useToast()
+  const { toasts } = useToast();
 
   return (
     <ToastProvider>
-      {toasts.map(function ({ id, title, description, action, ...props }) {
+      {toasts.map(function ({
+        id,
+        title,
+        description,
+        action,
+        variant,
+        ...props
+      }) {
         return (
           <Toast key={id} {...props}>
-            <div className="grid gap-1">
-              {title && <ToastTitle>{title}</ToastTitle>}
-              {description && (
-                <ToastDescription>{description}</ToastDescription>
-              )}
+            <div className="flex items-center w-full gap-2">
+              <div className="-ml-[20px]">
+                <Lottie
+                  style={{ width: 55 }}
+                  animationData={variant === "success" ? ChecklistOnly : null}
+                  loop={true}
+                  autoPlay
+                />
+              </div>
+              <div className="w-full -ml-2">
+                {title && <ToastTitle>{title}</ToastTitle>}
+                {description && (
+                  <ToastDescription className="mt-[3px]">
+                    {description}
+                  </ToastDescription>
+                )}
+              </div>
             </div>
             {action}
             <ToastClose />
           </Toast>
-        )
+        );
       })}
       <ToastViewport />
     </ToastProvider>
-  )
+  );
 }

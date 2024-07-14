@@ -1,0 +1,43 @@
+{
+    "items": [
+        {
+            "item_id": 1,
+            "customer_id": 1,
+            "qty": 10,
+            "unit_price": 10.000,
+            "total_price": 50.000
+        },
+        {
+            "item_id": 1,
+            "customer_id": 1,
+            "qty": 10,
+            "unit_price": 10.000,
+            "total_price": 50.000
+        },
+        {
+            "item_id": 1,
+            "customer_id": 1,
+            "qty": 10,
+            "unit_price": 10.000,
+            "total_price": 50.000
+        },
+        {
+            "item_id": 1,
+            "customer_id": 1,
+            "qty": 10,
+            "unit_price": 10.000,
+            "total_price": 50.000
+        },
+        {
+            "item_id": 1,
+            "customer_id": 1,
+            "qty": 10,
+            "unit_price": 10.000,
+            "total_price": 50.000
+        }
+    ],
+    "money_changes": 200000,
+    "payment_method": "cash",
+    "guarantee": "3 bulan",
+    "description" : "Lorem ipsum dolor sit amet consectetur. Augue gravida pretium vel non aliquam"
+}

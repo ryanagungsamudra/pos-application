@@ -14,7 +14,7 @@ module.exports = {
     extend: {
       backgroundImage: {
         "primary-gradient":
-          "linear-gradient(101.06deg, #28678C 36.86%, #80D0C7 63.14%)",
+          "linear-gradient(121.06deg, #28678C 50.86%, #80D0C7 63.14%)",
         "secondary-gradient":
           "linear-gradient(91.81deg, #038B09 59.47%, #64BC68 80.64%)",
       },

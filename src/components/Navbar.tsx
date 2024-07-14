@@ -13,9 +13,22 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { LogOut } from "lucide-react";
+import Cookies from "js-cookie";
+import { useNavigate } from "react-router-dom";
+import { useAppContext } from "@/provider/useAppContext";
 
 function Navbar() {
+  const navigate = useNavigate();
+  const { user } = useAppContext();
   const [toggleScanner, setToggleScanner] = useState(false);
+
+  const handleLogout = () => {
+    Cookies.remove("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("customerTrx");
+    localStorage.removeItem("tabs");
+    navigate("/login");
+  };
 
   return (
     <div className="flex w-full h-[9.22%] justify-between items-center px-4 py-2 bg-white drop-shadow-lg rounded-[10px]">
@@ -26,7 +39,7 @@ function Navbar() {
       />
 
       <div>
-        <div className="flex gap-5 items-center w-full justify-around h-full">
+        <div className="flex items-center justify-around w-full h-full gap-5">
           {/* Barcode Icon */}
           <div
             className="flex flex-col items-center justify-center w-[50px] cursor-pointer"
@@ -37,7 +50,7 @@ function Navbar() {
                 alt="Icon Barcode"
                 className="w-[46px] h-[46px]"
               />
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-3 bg-white flex justify-center items-center">
+              <div className="absolute flex items-center justify-center w-6 h-3 transform -translate-x-1/2 -translate-y-1/2 bg-white top-1/2 left-1/2">
                 <p
                   className={`text-[10px] ${
                     toggleScanner ? "text-[#038B0A]" : "text-[#B30A28]"
@@ -59,12 +72,16 @@ function Navbar() {
                   alt="Icon Profile"
                   className="w-[33px] h-[46px]"
                 />
-                <p className="font-bold text-[12px] text-center">Siskeee</p>
+                <p className="font-bold text-[12px] text-center">
+                  {user?.first_name ? `${user?.first_name}` : "User"}
+                </p>
               </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-6 mr-6 mt-4 bg-white hover:bg-[#DDEEFF] hover:font-normal">
-              <DropdownMenuItem className="cursor-pointer">
-                <LogOut className="mr-2 h-4" />
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={handleLogout}>
+                <LogOut className="h-4 mr-2" />
                 <span>Log out</span>
               </DropdownMenuItem>
             </DropdownMenuContent>

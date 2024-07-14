@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
 import { List, Plus, X } from "lucide-react";
+import { useAppContext } from "@/provider/useAppContext";
 
 function Breadcrumb() {
-  const [tabs, setTabs] = useState([
-    { id: 1, label: "Customer 1", active: true },
-  ]);
+  const tabLimit = 4;
+  const { tabs, setTabs, customerTrx, setCustomerTrx } = useAppContext();
 
   const [nextId, setNextId] = useState(2); // Initialize next ID counter
 
   const addTab = () => {
-    if (tabs.length >= 3) {
-      // Limit tabs to 3
+    if (tabs.length >= tabLimit) {
+      // Limit tabs
       return;
     }
     const newTab = {
@@ -50,6 +50,30 @@ function Breadcrumb() {
     );
   };
 
+  // adjust customerTrx according to tab
+  useEffect(() => {
+    // Adjust the length of customerTrx to match tabs
+    if (customerTrx.length < tabs.length) {
+      const newCustomerTrx = [
+        ...customerTrx,
+        ...Array(tabs.length - customerTrx.length).fill({
+          items: [],
+          customer: "Reguler",
+          description: "",
+          payment_method: "",
+          bon_duration: 0,
+          total: 0,
+          cash: 0,
+          money_change: 0,
+        }),
+      ];
+      setCustomerTrx(newCustomerTrx);
+    } else if (customerTrx.length > tabs.length) {
+      const newCustomerTrx = customerTrx.slice(0, tabs.length);
+      setCustomerTrx(newCustomerTrx);
+    }
+  }, [tabs, customerTrx, setCustomerTrx]);
+
   // Time and date
   const [dateTime, setDateTime] = useState(new Date());
 
@@ -77,8 +101,8 @@ function Breadcrumb() {
   };
 
   return (
-    <div className="flex w-full h-full justify-between items-center mt-2">
-      <div className=" flex gap-1">
+    <div className="flex items-center justify-between w-full h-full mt-2">
+      <div className="flex gap-1">
         {tabs.map((tab) => (
           <div
             key={tab.id}
@@ -86,7 +110,7 @@ function Breadcrumb() {
               tab.active ? "bg-[#464343]" : "bg-[#CECFD2]"
             } gap-2 justify-between items-center px-2 w-[291px] h-[31px] cursor-pointer`}
             onClick={() => switchTab(tab.id)}>
-            <div className="flex gap-2 items-center">
+            <div className="flex items-center gap-2">
               <List
                 size={18}
                 className={`text-white ${tab.active ? "" : "text-[#272727]"}`}
@@ -108,7 +132,7 @@ function Breadcrumb() {
           </div>
         ))}
 
-        {tabs.length < 3 && (
+        {tabs.length < tabLimit && (
           <div
             className="flex justify-center items-center w-[31px] h-[31px] bg-[#478BA1] cursor-pointer"
             onClick={addTab}>

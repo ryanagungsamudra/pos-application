@@ -3,28 +3,27 @@ import ReactDOM from "react-dom/client";
 
 import "./index.css";
 
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import Cashier from "./pages/Cashier";
-import Customer from "./pages/Customer";
-import Login from "./pages/Login";
+import { RouterProvider } from "react-router-dom";
 
-const router = createBrowserRouter([
-  {
-    path: "/login",
-    element: <Login />,
-  },
-  {
-    path: "/customer",
-    element: <Customer />,
-  },
-  {
-    path: "/cashier",
-    element: <Cashier />,
-  },
-]);
+// Tanstack Query & Context
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { AppProvider } from "./provider/AppProvider";
+// Create a client & Devtools
+const queryClient = new QueryClient();
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { Toaster } from "./components/ui/toaster";
+import { router } from "./routes";
+import { LoadingScreen } from "./components/ui/loading-screen";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <RouterProvider router={router} />
-  </React.StrictMode>
+  <QueryClientProvider client={queryClient}>
+    <AppProvider>
+      <React.StrictMode>
+        <RouterProvider router={router} />
+        <LoadingScreen />
+        <Toaster />
+        <ReactQueryDevtools initialIsOpen={true} />
+      </React.StrictMode>
+    </AppProvider>
+  </QueryClientProvider>
 );

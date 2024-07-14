@@ -133,7 +133,7 @@ function ExampleTable() {
         </tfoot>
       </table>
       <div className="h-4" />
-      <button onClick={() => rerender()} className="border p-2">
+      <button onClick={() => rerender()} className="p-2 border">
         Rerender
       </button>
     </div>
