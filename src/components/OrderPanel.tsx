@@ -5,7 +5,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import IconSearch from "@/assets/icons/search.svg";
 import IconTrash from "@/assets/icons/trash-white.svg";
 import { useEffect, useRef, useState } from "react";
-import { useFormattedNumber } from "@/lib/utils";
+import { formatCurrency, useFormattedNumber } from "@/lib/utils";
 
 import {
   Dialog,
@@ -29,6 +29,7 @@ import { useAppContext } from "@/provider/useAppContext";
 import { Checkbox } from "./ui/checkbox";
 import { getCustomers } from "@/config/https/customer";
 import { Input } from "./ui/input";
+import { Item } from "@/provider/AppContext";
 
 function OrderPanel() {
   const navigate = useNavigate();
@@ -42,13 +43,32 @@ function OrderPanel() {
     queryFn: getCustomers,
   });
 
-  const [formattedUang, , handleUangChange] = useFormattedNumber(0);
-  const [selectedOption, setSelectedOption] = useState("option-one");
+  const { tabs, customerTrx, setCustomerTrx } = useAppContext();
+  // Find the active tab
+  const activeTab = tabs.find((tab) => tab.active);
+  // Ensure there is an active tab and get its index
+  const activeTabIndex = activeTab ? tabs.indexOf(activeTab) : 0;
+  // Use the items from the customer transaction corresponding to the active tab
+  const activeTabItems = customerTrx[activeTabIndex]?.items || [];
+
+  const [, uang, handleUangChange] = useFormattedNumber(0);
   const [enterPressedInDialog, setEnterPressedInDialog] = useState(false);
   const [open, setOpen] = useState({
     customer: false,
     searchItem: false,
   });
+
+  const [addingNewCustomer, setAddingNewCustomer] = useState(false);
+  const [newCustomerName, setNewCustomerName] = useState("");
+  const [newCustomerPhone, setNewCustomerPhone] = useState("");
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [selectedOption, setSelectedOption] = useState("cash");
+  const [bonDuration, setBonDuration] = useState(0);
+  const [selectedItems, setSelectedItems] = useState([]);
+  const [description, setDescription] = useState(
+    customerTrx[activeTabIndex]?.description || ""
+  );
+
   const checkoutRef = useRef<HTMLDivElement>(null);
 
   const openCustomerModal = () => {
@@ -65,6 +85,7 @@ function OrderPanel() {
   };
   const handleSubmit = () => {
     navigate("/customer");
+    console.log(customerTrx[activeTabIndex]);
 
     toast({
       variant: "success",
@@ -88,14 +109,19 @@ function OrderPanel() {
       }
 
       switch (event.key) {
+        case "C":
+          if (event.shiftKey) {
+            openCustomerModal();
+          }
+          break;
         case "c":
-          setSelectedOption("option-one");
+          setSelectedOption("cash");
           break;
         case "t":
-          setSelectedOption("option-two");
+          setSelectedOption("transfer");
           break;
         case "b":
-          setSelectedOption("option-three");
+          setSelectedOption("bon");
           break;
         case "j":
           if (event.metaKey || event.ctrlKey) {
@@ -121,70 +147,49 @@ function OrderPanel() {
   }, [open.dialog]);
 
   // Dynamic add items
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const [selectedItems, setSelectedItems] = useState([]);
-  const { tabs, customerTrx, setCustomerTrx } = useAppContext();
-  // Find the active tab
-  const activeTab = tabs.find((tab) => tab.active);
-
-  const activeTabIndex = activeTab ? tabs.indexOf(activeTab) : 0;
-
   // CUSTOMER MODAL START
   const handleCustomerSelect = (customer) => {
     setSelectedCustomer(customer);
   };
 
-  function getInitials(name: string): string {
+  const getInitials = (name: string): string => {
     const names = name.split(" ");
     let initials = "";
     names.forEach((word) => {
       initials += word.charAt(0);
     });
     return initials.toUpperCase();
-  }
-
-  const handleCustomerDefault = () => {
-    const newCustomerTrx = [...customerTrx];
-    newCustomerTrx[activeTabIndex] = {
-      ...newCustomerTrx[activeTabIndex],
-      customer: "Reguler",
-    };
-    setCustomerTrx(newCustomerTrx);
-
-    openCustomerModal();
   };
 
-  const handleApplyCustomer = () => {
+  const updateCustomerTrx = (customerName: string) => {
     const newCustomerTrx = [...customerTrx];
     newCustomerTrx[activeTabIndex] = {
       ...newCustomerTrx[activeTabIndex],
-      customer: selectedCustomer.name,
+      customer: customerName,
     };
     setCustomerTrx(newCustomerTrx);
     setSelectedCustomer(null);
-
     openCustomerModal();
   };
 
+  const handleCustomerDefault = () => {
+    updateCustomerTrx("Reguler");
+  };
+
+  const handleApplyCustomer = () => {
+    if (selectedCustomer?.name) {
+      updateCustomerTrx(selectedCustomer.name);
+    }
+  };
+
   // adding new customer start
-  const [addingNewCustomer, setAddingNewCustomer] = useState(false);
-  const [newCustomerName, setNewCustomerName] = useState("");
-  const [newCustomerPhone, setNewCustomerPhone] = useState("");
   const handleSaveNewCustomer = () => {
     if (newCustomerName && newCustomerPhone) {
-      // Save new customer to state or context
-      const newCustomer = { name: newCustomerName, phone: newCustomerPhone };
-      // Replace this with actual state update logic for customerTrx
-      setCustomerTrx([
-        ...customerTrx,
-        {
-          customer: newCustomerName,
-          items: [],
-        },
-      ]);
-      handleCustomerSelect(newCustomer);
-      handleApplyCustomer();
-      setAddingNewCustomer(false); // Close the form
+      updateCustomerTrx(newCustomerName);
+      setAddingNewCustomer(false);
+
+      setNewCustomerName("");
+      setNewCustomerPhone("");
     } else {
       alert("Please enter name and phone number.");
     }
@@ -218,17 +223,57 @@ function OrderPanel() {
 
   const handleDeleteAllItems = () => {
     const newCustomerTrx = [...customerTrx];
-    console.log(newCustomerTrx[activeTabIndex]);
 
     newCustomerTrx[activeTabIndex].items = [];
     setCustomerTrx(newCustomerTrx);
   };
   // ITEMS MODAL END
 
+  // Function to calculate total based on active tab's items
+  const calculateTotal = (items: Item[]) => {
+    return items.reduce(
+      (total, item) => total + (item.total_unit_price || 0),
+      0
+    );
+  };
+
+  // Function to calculate change based on total and entered amount
+  const calculateChange = (total: number, cash: number) => {
+    return cash - total;
+  };
+
+  useEffect(() => {
+    const total = calculateTotal(activeTabItems);
+    const change = calculateChange(total, uang);
+
+    // Update customer transaction based on active tab
+    setCustomerTrx((prevCustomerTrx) => {
+      const newCustomerTrx = [...prevCustomerTrx];
+      newCustomerTrx[activeTabIndex] = {
+        ...newCustomerTrx[activeTabIndex],
+        total,
+        cash: uang,
+        money_change: change,
+        description,
+        payment_method: selectedOption,
+        bon_duration: bonDuration,
+      };
+      return newCustomerTrx;
+    });
+  }, [
+    activeTabItems,
+    activeTabIndex,
+    uang,
+    description,
+    selectedOption,
+    bonDuration,
+    setCustomerTrx,
+  ]);
+
   return (
     <div className="flex gap-5 mt-[0.2rem] -m-[1.2%] px-4 pt-3">
       <div className="flex flex-col gap-[11px]">
-        {/* Vustomer */}
+        {/* Customer */}
         <div className="w-[418px] h-[44px] rounded-[10px] bg-primary-gradient flex items-center justify-between p-[5px] pl-[12px]">
           <p className="text-[20px] font-semibold text-white">Customer</p>
           <Dialog open={open.customer} onOpenChange={openCustomerModal}>
@@ -379,7 +424,10 @@ function OrderPanel() {
             <p className="text-[20px] font-semibold text-white">Keterangan</p>
           </div>
           <div className="w-[418px] rounded-bl-[10px] rounded-br-[10px] drop-shadow-lg bg-white p-[12px]">
-            <textarea className=" w-full h-full font-normal border-[0.4px] border-solid border-black text-[20px] rounded-[5px]" />
+            <textarea
+              className=" w-full h-full font-normal border-[0.4px] border-solid border-black text-[20px] rounded-[5px]"
+              onChange={(e) => setDescription(e.target.value)}
+            />
           </div>
         </div>
       </div>
@@ -393,79 +441,75 @@ function OrderPanel() {
         </div>
         <div className="w-[418px] rounded-bl-[10px] rounded-br-[10px] drop-shadow-lg bg-white p-[12px]">
           <RadioGroup
-            defaultValue="option-one"
+            defaultValue="cash"
             value={selectedOption}
             onValueChange={setSelectedOption}
             className="flex gap-[12px]">
             <div
-              onClick={() => setSelectedOption("option-one")}
+              onClick={() => setSelectedOption("cash")}
               className={`flex justify-center items-center space-x-2 w-[104px] h-[60px] border-[1.1px] ${
-                selectedOption === "option-one"
+                selectedOption === "cash"
                   ? "border-[#7ABFFF]"
                   : "border-[#D1D3D5]"
               } rounded-[10px] cursor-pointer`}>
               <RadioGroupItem
-                value="option-one"
-                id="option-one"
+                value="cash"
+                id="cash"
                 className={`${
-                  selectedOption === "option-one"
-                    ? "text-[#7ABFFF]"
-                    : "text-[#000]"
+                  selectedOption === "cash" ? "text-[#7ABFFF]" : "text-[#000]"
                 }`}
               />
               <Label
-                htmlFor="option-one"
+                htmlFor="cash"
                 className={`text-[18px] ${
-                  selectedOption === "option-one" ? "text-[#7ABFFF]" : ""
+                  selectedOption === "cash" ? "text-[#7ABFFF]" : ""
                 }`}>
                 Cash
               </Label>
             </div>
             <div
-              onClick={() => setSelectedOption("option-two")}
+              onClick={() => setSelectedOption("transfer")}
               className={`flex justify-center items-center space-x-2 w-[124px] h-[60px] border-[1.1px] ${
-                selectedOption === "option-two"
+                selectedOption === "transfer"
                   ? "border-[#7ABFFF]"
                   : "border-[#D1D3D5]"
               } rounded-[10px] cursor-pointer`}>
               <RadioGroupItem
-                value="option-two"
-                id="option-two"
+                value="transfer"
+                id="transfer"
                 className={`${
-                  selectedOption === "option-two"
+                  selectedOption === "transfer"
                     ? "text-[#7ABFFF]"
                     : "text-[#000]"
                 }`}
               />
               <Label
-                htmlFor="option-two"
+                htmlFor="transfer"
                 className={`text-[18px] ${
-                  selectedOption === "option-two" ? "text-[#7ABFFF]" : ""
+                  selectedOption === "transfer" ? "text-[#7ABFFF]" : ""
                 }`}>
                 Transfer
               </Label>
             </div>
             <div
-              onClick={() => setSelectedOption("option-three")}
+              onClick={() => setSelectedOption("bon")}
               className={`flex justify-center items-center space-x-2 w-[140px] h-[60px] border-[1.1px] ${
-                selectedOption === "option-three"
+                selectedOption === "bon"
                   ? "border-[#7ABFFF]"
                   : "border-[#D1D3D5]"
               } rounded-[10px] cursor-pointer`}>
               <RadioGroupItem
-                value="option-three"
-                id="option-three"
+                value="bon"
+                id="bon"
                 className={`${
-                  selectedOption === "option-three"
-                    ? "text-[#7ABFFF]"
-                    : "text-[#000]"
+                  selectedOption === "bon" ? "text-[#7ABFFF]" : "text-[#000]"
                 }`}
               />
               <div>
                 <Label
-                  htmlFor="option-three"
+                  htmlFor="bon"
                   className={`text-[18px] ${
-                    selectedOption === "option-three" ? "text-[#7ABFFF]" : ""
+                    selectedOption === "bon" ? "text-[#7ABFFF]" : ""
                   }`}>
                   Bon
                 </Label>
@@ -473,6 +517,7 @@ function OrderPanel() {
                   <input
                     type="text"
                     className="w-[34px] h-[18px] border-[0.4px] border-solid border-black"
+                    onChange={(e) => setBonDuration(parseInt(e.target.value))}
                   />
                   <p>Hari</p>
                 </div>
@@ -574,30 +619,47 @@ function OrderPanel() {
       {/* Checkout */}
       <div className="w-full">
         <div className="w-full h-140px drop-shadow-lg border-2 bg-white rounded-tr-[10px] rounded-tl-[10px] p-4">
-          <div className="flex justify-between w-full">
-            <p className="text-[26px] font-semibold">Total</p>
-            <p className="text-[26px] font-semibold">Rp 100.000.000</p>
-          </div>
-          <div className="flex justify-between w-full">
-            <p className="text-[20px] font-normal">Uang</p>
-            <div className="flex gap-2">
-              <p className="text-[20px] font-normal">Rp</p>
-              <input
-                type="text"
-                className="text-[20px] w-[120px] font-normal border-[0.4px] border-solid border-black"
-                value={formattedUang}
-                onChange={handleUangChange}
-              />
-            </div>
-          </div>
-          <div className="mt-2 -mx-4">
-            <hr className="border-[#CFD1D3] border-1.2" />
-          </div>
-          <div className="flex justify-between w-full">
-            <p className="text-[20px] font-normal">Kembalian</p>
-            <p className="text-[20px] font-normal">Rp 40.000</p>
-          </div>
+          {customerTrx[activeTabIndex] && (
+            <>
+              <div className="flex justify-between w-full">
+                <p className="text-[26px] font-semibold">Total</p>
+                <p className="text-[26px] font-semibold">
+                  {customerTrx[activeTabIndex].total
+                    ? formatCurrency(customerTrx[activeTabIndex].total)
+                    : ""}
+                </p>
+              </div>
+              <div className="flex justify-between w-full">
+                <p className="text-[20px] font-normal">Uang</p>
+                <div className="flex gap-2">
+                  <p className="text-[20px] font-normal">Rp</p>
+                  <input
+                    type="text"
+                    className="text-[20px] w-[120px] font-normal border-[0.4px] border-solid border-black"
+                    value={
+                      customerTrx[activeTabIndex].cash
+                        ? String(customerTrx[activeTabIndex].cash)
+                        : ""
+                    }
+                    onChange={handleUangChange}
+                  />
+                </div>
+              </div>
+              <div className="mt-2 -mx-4">
+                <hr className="border-[#CFD1D3] border-1.2" />
+              </div>
+              <div className="flex justify-between w-full">
+                <p className="text-[20px] font-normal">Kembalian</p>
+                <p className="text-[20px] font-normal">
+                  {customerTrx[activeTabIndex].money_change
+                    ? formatCurrency(customerTrx[activeTabIndex].money_change)
+                    : ""}
+                </p>
+              </div>
+            </>
+          )}
         </div>
+
         <Dialog
           open={open.dialog}
           onOpenChange={(isOpen) =>

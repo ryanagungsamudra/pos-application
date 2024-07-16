@@ -38,7 +38,7 @@ export interface Item {
   market_updated_at: string;
   qty: number;
   unit_price: number;
-  total_unit_price: number;
+  total_unit_price?: number;
 }
 
 export interface CustomerTransaction {

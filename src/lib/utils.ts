@@ -19,6 +19,36 @@ export function cn(...inputs: ClassValue[]) {
  * @param {number} number - The number to format.
  * @returns {string} - The formatted number or an empty string if the number is zero.
  */
+
+// interface debounceProps {
+//   func: (...args: any) => void;
+//   delay: number;
+// }
+
+// export const debounce = ({ func, delay }: debounceProps) => {
+//   let timeoutId;
+
+//   return function debounced(...args) {
+//     const context = this;
+
+//     clearTimeout(timeoutId);
+
+//     timeoutId = setTimeout(() => {
+//       func.apply(context, args);
+//     }, delay);
+//   };
+// };
+
+export const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+  })
+    .format(value)
+    .replace("IDR", "Rp");
+};
+
 const formatNumber = (number: number): string => {
   if (number === 0) return "";
   return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");

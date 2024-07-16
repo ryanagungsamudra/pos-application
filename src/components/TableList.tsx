@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
 import IconTrash from "@/assets/icons/trash.svg";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import dummyData from "@/mockup/items.json";
 import { useAppContext } from "@/provider/useAppContext";
 import Lottie from "lottie-react";
 import noDataAnimation from "@/assets/lottie/no-data.json";
+import { Item } from "@/provider/AppContext";
+import { formatCurrency } from "@/lib/utils";
 // import { useAppContext } from "@/provider/useAppContext";
 
 const COLUMN_WIDTHS = {
@@ -40,12 +40,33 @@ const CustomTableHeader = () => (
 );
 
 interface CustomTableRowProps {
-  rowData: any;
+  rowData: Item;
   index: number;
   onDelete: (index: number) => void;
+  onUpdate: (index: number, updatedProperties: Partial<Item>) => void;
 }
-const CustomTableRow = ({ rowData, index, onDelete }: CustomTableRowProps) => {
+const CustomTableRow = ({
+  rowData,
+  index,
+  onDelete,
+  onUpdate,
+}: CustomTableRowProps) => {
   const bgColor = index % 2 === 0 ? "bg-[#DDEEFF]" : "bg-[#fff]";
+
+  const handleQtyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newQty = parseInt(e.target.value, 10);
+    const newTotalUnitPrice = newQty * rowData.unit_price;
+    onUpdate(index, { qty: newQty, total_unit_price: newTotalUnitPrice });
+  };
+
+  const handleUnitPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newUnitPrice = parseFloat(e.target.value);
+    const newTotalUnitPrice = newUnitPrice * rowData.qty;
+    onUpdate(index, {
+      unit_price: newUnitPrice,
+      total_unit_price: newTotalUnitPrice,
+    });
+  };
 
   return (
     <div className={`flex items-center border ${bgColor}`}>
@@ -59,29 +80,30 @@ const CustomTableRow = ({ rowData, index, onDelete }: CustomTableRowProps) => {
             <span className="font-normal"> | {rowData.barcode}</span>
           </p>
           <p className="text-[#000] w-full text-[20px]">
-            {rowData.brand} | {rowData.guarantee} | {rowData.category}
+            {rowData.brand} | {rowData.guarantee} | {rowData.type}
           </p>
         </div>
       </div>
       <div className={`${COLUMN_WIDTHS.modal} p-2`}>
         <div className="flex flex-wrap">
-          <p className="font-bold text-[20px]">{rowData.modal}</p>
+          <p className="font-bold text-[20px]">{rowData.product_code}</p>
           <p className="text-[#000] w-full text-[20px]">
-            {rowData.lastUpdatedModal}
+            {rowData.product_code_updated_at}
           </p>
         </div>
       </div>
       <div className={`${COLUMN_WIDTHS.market} p-2`}>
         <div className="flex flex-wrap">
-          <p className="font-bold text-[20px]">{rowData.pasaran}</p>
+          <p className="font-bold text-[20px]">{rowData.market}</p>
           <p className="text-[#000] w-full text-[20px]">
-            {rowData.lastUpdatedPasaran}
+            {rowData.market_updated_at}
           </p>
         </div>
       </div>
       <div className={`${COLUMN_WIDTHS.pcs} p-2`}>
         <input
-          defaultValue={1}
+          onChange={handleQtyChange}
+          value={rowData.qty ? String(rowData.qty) : ""}
           type="text"
           className=" w-[30px] font-normal border-[0.4px] border-solid border-black text-[20px]"
         />
@@ -90,14 +112,17 @@ const CustomTableRow = ({ rowData, index, onDelete }: CustomTableRowProps) => {
         <div className="flex gap-2">
           <p className="font-normal text-[20px]">Rp</p>
           <input
-            defaultValue={rowData.unitPrice}
+            onChange={handleUnitPriceChange}
+            value={rowData.unit_price ? String(rowData.unit_price) : ""}
             type="text"
             className=" w-[110px] font-normal border-[0.4px] border-solid border-black text-[20px]"
           />
         </div>
       </div>
       <div className={`${COLUMN_WIDTHS.totalPrice} p-2 text-[20px]`}>
-        Rp {rowData.pcs * rowData.unitPrice}
+        {rowData.total_unit_price
+          ? formatCurrency(rowData.total_unit_price)
+          : ""}
       </div>
       <div className="p-2">
         <img
@@ -123,15 +148,26 @@ function TableList() {
   // Use the items from the customer transaction corresponding to the active tab
   const items = customerTrx[activeTabIndex]?.items || [];
 
-  const [data, setData] = useState(items);
+  // Function to update items
+  const updateItems = (newItems: Item[]) => {
+    const newCustomerTrx = [...customerTrx];
+    newCustomerTrx[activeTabIndex] = {
+      ...newCustomerTrx[activeTabIndex],
+      items: newItems,
+    };
+    setCustomerTrx(newCustomerTrx);
+  };
 
-  useEffect(() => {
-    setData(items);
-  }, [items]);
+  // Function to modify an item
+  const modifyItem = (index: number, updatedProperties: Partial<Item>) => {
+    const updatedItems = items.map((item, i) =>
+      i === index ? { ...item, ...updatedProperties } : item
+    );
+    updateItems(updatedItems);
+  };
 
   const handleDelete = (index: number) => {
-    const newData = data.filter((_, i) => i !== index);
-    setData(newData);
+    const newData = items.filter((_, i) => i !== index);
 
     // Update the customerTrx state to reflect the deletion
     const newCustomerTrx = [...customerTrx];
@@ -143,7 +179,7 @@ function TableList() {
     <div className="flex flex-col border-b-4">
       <CustomTableHeader />
       <ScrollArea className="h-[410px] w-full">
-        {data.length === 0 && (
+        {items.length === 0 && (
           <div className="flex flex-wrap items-center justify-center w-full h-[350px]">
             <div className="w-full mt-[4rem]">
               <Lottie
@@ -162,12 +198,13 @@ function TableList() {
             </div>
           </div>
         )}
-        {data.map((row, index) => (
+        {items.map((row, index) => (
           <CustomTableRow
             key={index}
             rowData={row}
             index={index}
             onDelete={handleDelete}
+            onUpdate={modifyItem}
           />
         ))}
         <ScrollBar orientation="vertical" />

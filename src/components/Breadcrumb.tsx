@@ -2,23 +2,27 @@ import { useEffect, useState } from "react";
 import { List, Plus, X } from "lucide-react";
 import { useAppContext } from "@/provider/useAppContext";
 
-function Breadcrumb() {
-  const tabLimit = 4;
-  const { tabs, setTabs, customerTrx, setCustomerTrx } = useAppContext();
+const tabLimit = 2;
 
+function Breadcrumb() {
+  const { tabs, setTabs, customerTrx, setCustomerTrx } = useAppContext();
   const [nextId, setNextId] = useState(2); // Initialize next ID counter
+  const [dateTime, setDateTime] = useState(new Date());
 
   const addTab = () => {
     if (tabs.length >= tabLimit) {
-      // Limit tabs
+      console.warn("Tab limit reached");
       return;
     }
+
     const newTab = {
       id: nextId, // Use nextId for new tab ID
       label: `Customer ${nextId}`,
-      active: false,
+      active: true,
     };
-    setTabs([...tabs, newTab]);
+
+    const updatedTabs = tabs.map((tab) => ({ ...tab, active: false })); // Deactivate all other tabs
+    setTabs([...updatedTabs, newTab]);
     setNextId(nextId + 1); // Increment nextId for the next tab
   };
 
@@ -36,6 +40,8 @@ function Breadcrumb() {
         // If no tab after the removed one, set the last tab as active
         newTabs[newTabs.length - 1].active = true;
       }
+    } else if (newTabs.length === 0) {
+      console.warn("No tabs left");
     }
 
     setTabs(newTabs);
@@ -50,7 +56,7 @@ function Breadcrumb() {
     );
   };
 
-  // adjust customerTrx according to tab
+  // Adjust customerTrx according to tabs
   useEffect(() => {
     // Adjust the length of customerTrx to match tabs
     if (customerTrx.length < tabs.length) {
@@ -75,8 +81,6 @@ function Breadcrumb() {
   }, [tabs, customerTrx, setCustomerTrx]);
 
   // Time and date
-  const [dateTime, setDateTime] = useState(new Date());
-
   useEffect(() => {
     const intervalId = setInterval(() => {
       setDateTime(new Date());
