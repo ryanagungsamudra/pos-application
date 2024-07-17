@@ -5,7 +5,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import IconSearch from "@/assets/icons/search.svg";
 import IconTrash from "@/assets/icons/trash-white.svg";
 import { useEffect, useRef, useState } from "react";
-import { formatCurrency, useFormattedNumber } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 
 import {
   Dialog,
@@ -30,6 +30,7 @@ import { Checkbox } from "./ui/checkbox";
 import { getCustomers } from "@/config/https/customer";
 import { Input } from "./ui/input";
 import { Item } from "@/provider/AppContext";
+import { InputNumeric } from "./ui/input-numeric";
 
 function OrderPanel() {
   const navigate = useNavigate();
@@ -51,23 +52,19 @@ function OrderPanel() {
   // Use the items from the customer transaction corresponding to the active tab
   const activeTabItems = customerTrx[activeTabIndex]?.items || [];
 
-  const [, uang, handleUangChange] = useFormattedNumber(0);
   const [enterPressedInDialog, setEnterPressedInDialog] = useState(false);
   const [open, setOpen] = useState({
     customer: false,
     searchItem: false,
+    dialog: false,
   });
 
   const [addingNewCustomer, setAddingNewCustomer] = useState(false);
   const [newCustomerName, setNewCustomerName] = useState("");
   const [newCustomerPhone, setNewCustomerPhone] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const [selectedOption, setSelectedOption] = useState("cash");
   const [bonDuration, setBonDuration] = useState(0);
   const [selectedItems, setSelectedItems] = useState([]);
-  const [description, setDescription] = useState(
-    customerTrx[activeTabIndex]?.description || ""
-  );
 
   const checkoutRef = useRef<HTMLDivElement>(null);
 
@@ -84,8 +81,20 @@ function OrderPanel() {
     }));
   };
   const handleSubmit = () => {
+    if (customerTrx[activeTabIndex].money_change <= 0) {
+      return toast({
+        variant: "destructive",
+        title: "Uang Kurang!",
+        description: "Silahkan tambahkan uang",
+        duration: 2500,
+      });
+    }
+
     navigate("/customer");
-    console.log(customerTrx[activeTabIndex]);
+    console.log(
+      customerTrx[activeTabIndex],
+      "==JSON OBJECT READY TO SENT TO BACKEND=="
+    );
 
     toast({
       variant: "success",
@@ -115,13 +124,13 @@ function OrderPanel() {
           }
           break;
         case "c":
-          setSelectedOption("cash");
+          handlePaymentMethodChange("cash");
           break;
         case "t":
-          setSelectedOption("transfer");
+          handlePaymentMethodChange("transfer");
           break;
         case "b":
-          setSelectedOption("bon");
+          handlePaymentMethodChange("bon");
           break;
         case "j":
           if (event.metaKey || event.ctrlKey) {
@@ -146,7 +155,6 @@ function OrderPanel() {
     }
   }, [open.dialog]);
 
-  // Dynamic add items
   // CUSTOMER MODAL START
   const handleCustomerSelect = (customer) => {
     setSelectedCustomer(customer);
@@ -204,17 +212,28 @@ function OrderPanel() {
   // CUSTOMER MODAL END
 
   // ITEMS MODAL START
-  const handleItemClick = (item) => {
-    if (selectedItems.includes(item)) {
-      setSelectedItems(selectedItems.filter((i) => i !== item));
-    } else {
-      setSelectedItems([...selectedItems, item]);
+  const handleItemClick = (item: Item) => {
+    const isDuplicate = activeTabItems.some((i) => i.barcode === item.barcode);
+
+    if (!isDuplicate) {
+      if (selectedItems.includes(item)) {
+        setSelectedItems(selectedItems.filter((i) => i !== item));
+      } else {
+        setSelectedItems([...selectedItems, item]);
+      }
     }
   };
 
   const handleApplyItems = () => {
     const newCustomerTrx = [...customerTrx];
-    newCustomerTrx[activeTabIndex].items.push(...selectedItems);
+    const existingItems = newCustomerTrx[activeTabIndex].items.map(
+      (item) => item.barcode
+    );
+    const itemsToAdd = selectedItems.filter(
+      (item) => !existingItems.includes(item.barcode)
+    );
+
+    newCustomerTrx[activeTabIndex].items.push(...itemsToAdd);
     setCustomerTrx(newCustomerTrx);
     setSelectedItems([]); // Reset selected items
 
@@ -242,9 +261,39 @@ function OrderPanel() {
     return cash - total;
   };
 
+  const handleDescriptionChange = (e) => {
+    const value = e.target.value;
+    const newCustomerTrx = [...customerTrx];
+    newCustomerTrx[activeTabIndex] = {
+      ...newCustomerTrx[activeTabIndex],
+      description: value,
+    };
+    setCustomerTrx(newCustomerTrx);
+  };
+
+  const handlePaymentMethodChange = (newValue) => {
+    const newCustomerTrx = [...customerTrx];
+    newCustomerTrx[activeTabIndex] = {
+      ...newCustomerTrx[activeTabIndex],
+      payment_method: newValue,
+    };
+    setCustomerTrx(newCustomerTrx);
+  };
+  const paymentMethodSelected = customerTrx[activeTabIndex]?.payment_method;
+
+  const handleCash = (newValue) => {
+    const newCustomerTrx = [...customerTrx];
+
+    newCustomerTrx[activeTabIndex] = {
+      ...newCustomerTrx[activeTabIndex],
+      cash: newValue,
+    };
+    setCustomerTrx(newCustomerTrx);
+  };
+
   useEffect(() => {
     const total = calculateTotal(activeTabItems);
-    const change = calculateChange(total, uang);
+    const change = calculateChange(total, customerTrx[activeTabIndex]?.cash);
 
     // Update customer transaction based on active tab
     setCustomerTrx((prevCustomerTrx) => {
@@ -252,10 +301,7 @@ function OrderPanel() {
       newCustomerTrx[activeTabIndex] = {
         ...newCustomerTrx[activeTabIndex],
         total,
-        cash: uang,
         money_change: change,
-        description,
-        payment_method: selectedOption,
         bon_duration: bonDuration,
       };
       return newCustomerTrx;
@@ -263,9 +309,7 @@ function OrderPanel() {
   }, [
     activeTabItems,
     activeTabIndex,
-    uang,
-    description,
-    selectedOption,
+    customerTrx,
     bonDuration,
     setCustomerTrx,
   ]);
@@ -426,7 +470,12 @@ function OrderPanel() {
           <div className="w-[418px] rounded-bl-[10px] rounded-br-[10px] drop-shadow-lg bg-white p-[12px]">
             <textarea
               className=" w-full h-full font-normal border-[0.4px] border-solid border-black text-[20px] rounded-[5px]"
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={handleDescriptionChange}
+              value={
+                customerTrx[activeTabIndex]?.description
+                  ? customerTrx[activeTabIndex]?.description
+                  : ""
+              }
             />
           </div>
         </div>
@@ -442,13 +491,17 @@ function OrderPanel() {
         <div className="w-[418px] rounded-bl-[10px] rounded-br-[10px] drop-shadow-lg bg-white p-[12px]">
           <RadioGroup
             defaultValue="cash"
-            value={selectedOption}
-            onValueChange={setSelectedOption}
+            value={
+              customerTrx[activeTabIndex]?.payment_method
+                ? customerTrx[activeTabIndex]?.payment_method
+                : ""
+            }
+            onValueChange={handlePaymentMethodChange}
             className="flex gap-[12px]">
             <div
-              onClick={() => setSelectedOption("cash")}
+              onClick={() => handlePaymentMethodChange("cash")}
               className={`flex justify-center items-center space-x-2 w-[104px] h-[60px] border-[1.1px] ${
-                selectedOption === "cash"
+                paymentMethodSelected === "cash"
                   ? "border-[#7ABFFF]"
                   : "border-[#D1D3D5]"
               } rounded-[10px] cursor-pointer`}>
@@ -456,21 +509,23 @@ function OrderPanel() {
                 value="cash"
                 id="cash"
                 className={`${
-                  selectedOption === "cash" ? "text-[#7ABFFF]" : "text-[#000]"
+                  paymentMethodSelected === "cash"
+                    ? "text-[#7ABFFF]"
+                    : "text-[#000]"
                 }`}
               />
               <Label
                 htmlFor="cash"
                 className={`text-[18px] ${
-                  selectedOption === "cash" ? "text-[#7ABFFF]" : ""
+                  paymentMethodSelected === "cash" ? "text-[#7ABFFF]" : ""
                 }`}>
                 Cash
               </Label>
             </div>
             <div
-              onClick={() => setSelectedOption("transfer")}
+              onClick={() => handlePaymentMethodChange("transfer")}
               className={`flex justify-center items-center space-x-2 w-[124px] h-[60px] border-[1.1px] ${
-                selectedOption === "transfer"
+                paymentMethodSelected === "transfer"
                   ? "border-[#7ABFFF]"
                   : "border-[#D1D3D5]"
               } rounded-[10px] cursor-pointer`}>
@@ -478,7 +533,7 @@ function OrderPanel() {
                 value="transfer"
                 id="transfer"
                 className={`${
-                  selectedOption === "transfer"
+                  paymentMethodSelected === "transfer"
                     ? "text-[#7ABFFF]"
                     : "text-[#000]"
                 }`}
@@ -486,15 +541,15 @@ function OrderPanel() {
               <Label
                 htmlFor="transfer"
                 className={`text-[18px] ${
-                  selectedOption === "transfer" ? "text-[#7ABFFF]" : ""
+                  paymentMethodSelected === "transfer" ? "text-[#7ABFFF]" : ""
                 }`}>
                 Transfer
               </Label>
             </div>
             <div
-              onClick={() => setSelectedOption("bon")}
+              onClick={() => handlePaymentMethodChange("bon")}
               className={`flex justify-center items-center space-x-2 w-[140px] h-[60px] border-[1.1px] ${
-                selectedOption === "bon"
+                paymentMethodSelected === "bon"
                   ? "border-[#7ABFFF]"
                   : "border-[#D1D3D5]"
               } rounded-[10px] cursor-pointer`}>
@@ -502,14 +557,16 @@ function OrderPanel() {
                 value="bon"
                 id="bon"
                 className={`${
-                  selectedOption === "bon" ? "text-[#7ABFFF]" : "text-[#000]"
+                  paymentMethodSelected === "bon"
+                    ? "text-[#7ABFFF]"
+                    : "text-[#000]"
                 }`}
               />
               <div>
                 <Label
                   htmlFor="bon"
                   className={`text-[18px] ${
-                    selectedOption === "bon" ? "text-[#7ABFFF]" : ""
+                    paymentMethodSelected === "bon" ? "text-[#7ABFFF]" : ""
                   }`}>
                   Bon
                 </Label>
@@ -562,25 +619,39 @@ function OrderPanel() {
                   />
                 </div>
                 <ScrollArea className="h-full">
-                  {items?.data?.map((item) => (
-                    <div
-                      key={item.name}
-                      onClick={() => handleItemClick(item)}
-                      className={`flex items-center justify-between p-2 hover:bg-gray-200 cursor-pointer ${
-                        selectedItems.includes(item) ? "bg-gray-200" : ""
-                      }`}>
-                      <p className="text-[16px] font-bold">
-                        {item.name} |{" "}
-                        <span className="font-normal">{item.barcode}</span>
-                      </p>
-                      <Checkbox
-                        checked={selectedItems.includes(item)}
-                        onChange={() => handleItemClick(item)}
-                        className="mr-4 cursor-pointer"
-                      />
-                    </div>
-                  ))}
+                  {items?.data?.map((item) => {
+                    const isDuplicate = customerTrx?.[
+                      activeTabIndex
+                    ]?.items?.some((i) => i.barcode === item.barcode);
+
+                    return (
+                      <div
+                        key={item.name}
+                        onClick={() => handleItemClick(item)}
+                        className={`flex items-center justify-between p-2 hover:bg-gray-200 cursor-pointer ${
+                          selectedItems.includes(item) ? "bg-gray-200" : ""
+                        }`}>
+                        <p className="text-[16px] font-bold">
+                          {item.name} |{" "}
+                          <span className="font-normal">{item.barcode}</span>
+                          {isDuplicate && (
+                            <span className="text-[#FF0000] text-sm font-normal">
+                              {" "}
+                              (Sudah dipilih)
+                            </span>
+                          )}
+                        </p>
+                        <Checkbox
+                          disabled={isDuplicate}
+                          checked={selectedItems.includes(item)}
+                          onChange={() => handleItemClick(item)}
+                          className="mr-4 cursor-pointer"
+                        />
+                      </div>
+                    );
+                  })}
                 </ScrollArea>
+
                 <DialogFooter>
                   <Button
                     type="button"
@@ -633,15 +704,14 @@ function OrderPanel() {
                 <p className="text-[20px] font-normal">Uang</p>
                 <div className="flex gap-2">
                   <p className="text-[20px] font-normal">Rp</p>
-                  <input
-                    type="text"
-                    className="text-[20px] w-[120px] font-normal border-[0.4px] border-solid border-black"
+                  <InputNumeric
                     value={
                       customerTrx[activeTabIndex].cash
-                        ? String(customerTrx[activeTabIndex].cash)
-                        : ""
+                        ? customerTrx[activeTabIndex].cash
+                        : 0
                     }
-                    onChange={handleUangChange}
+                    onChange={handleCash}
+                    className="w-[120px] font-normal border-[0.4px] border-solid border-black text-[20px]"
                   />
                 </div>
               </div>

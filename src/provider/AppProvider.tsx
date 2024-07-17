@@ -12,7 +12,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
   ]);
   const [customerTrx, setCustomerTrx] = useLocalStorageState<
     CustomerTransaction[]
-  >("customerTrx", []);
+  >("customerTrx", [
+    {
+      items: [],
+      customer: "Reguler",
+      description: "",
+      payment_method: "cash",
+      bon_duration: 0,
+      total: 0,
+      cash: 0,
+      money_change: 0,
+    },
+  ]);
 
   // Loading state and logic
   const [isLoading, setIsLoading] = useState(false);

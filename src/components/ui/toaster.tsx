@@ -9,6 +9,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import Lottie from "lottie-react";
 import ChecklistOnly from "@/assets/lottie/checklist-only.json";
+import Warning from "@/assets/lottie/warning.json";
 
 export function Toaster() {
   const { toasts } = useToast();
@@ -29,7 +30,9 @@ export function Toaster() {
               <div className="-ml-[20px]">
                 <Lottie
                   style={{ width: 55 }}
-                  animationData={variant === "success" ? ChecklistOnly : null}
+                  animationData={
+                    variant === "success" ? ChecklistOnly : Warning
+                  }
                   loop={true}
                   autoPlay
                 />

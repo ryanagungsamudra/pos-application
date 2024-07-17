@@ -66,7 +66,7 @@ function Breadcrumb() {
           items: [],
           customer: "Reguler",
           description: "",
-          payment_method: "",
+          payment_method: "cash",
           bon_duration: 0,
           total: 0,
           cash: 0,

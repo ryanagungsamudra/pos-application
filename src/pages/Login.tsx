@@ -80,6 +80,9 @@ const Login: React.FC = () => {
         setError("Username or password is incorrect");
       } finally {
         setTimeout(() => {
+          localStorage.removeItem("user");
+          localStorage.removeItem("customerTrx");
+          localStorage.removeItem("tabs");
           hideLoading();
         }, 3000);
       }

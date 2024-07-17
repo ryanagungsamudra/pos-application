@@ -5,6 +5,7 @@ import Lottie from "lottie-react";
 import noDataAnimation from "@/assets/lottie/no-data.json";
 import { Item } from "@/provider/AppContext";
 import { formatCurrency } from "@/lib/utils";
+import { InputNumeric } from "./ui/input-numeric";
 // import { useAppContext } from "@/provider/useAppContext";
 
 const COLUMN_WIDTHS = {
@@ -59,8 +60,7 @@ const CustomTableRow = ({
     onUpdate(index, { qty: newQty, total_unit_price: newTotalUnitPrice });
   };
 
-  const handleUnitPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newUnitPrice = parseFloat(e.target.value);
+  const handleUnitPriceChange = (newUnitPrice: number) => {
     const newTotalUnitPrice = newUnitPrice * rowData.qty;
     onUpdate(index, {
       unit_price: newUnitPrice,
@@ -103,7 +103,7 @@ const CustomTableRow = ({
       <div className={`${COLUMN_WIDTHS.pcs} p-2`}>
         <input
           onChange={handleQtyChange}
-          value={rowData.qty ? String(rowData.qty) : ""}
+          value={rowData.qty ? String(rowData.qty) : 0}
           type="text"
           className=" w-[30px] font-normal border-[0.4px] border-solid border-black text-[20px]"
         />
@@ -111,10 +111,9 @@ const CustomTableRow = ({
       <div className={`${COLUMN_WIDTHS.unitPrice} p-2`}>
         <div className="flex gap-2">
           <p className="font-normal text-[20px]">Rp</p>
-          <input
+          <InputNumeric
+            value={rowData.unit_price}
             onChange={handleUnitPriceChange}
-            value={rowData.unit_price ? String(rowData.unit_price) : ""}
-            type="text"
             className=" w-[110px] font-normal border-[0.4px] border-solid border-black text-[20px]"
           />
         </div>
