@@ -11,5 +11,6 @@ export const postLogin = ({ email, password }: Login) => {
     email,
     password,
   });
+
   return response;
 };

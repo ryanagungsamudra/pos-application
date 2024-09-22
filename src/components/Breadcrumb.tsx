@@ -27,10 +27,13 @@ function Breadcrumb() {
   };
 
   const removeTab = (idToRemove: number) => {
+    const tabIndexToRemove = tabs.findIndex((tab) => tab.id === idToRemove);
+    if (tabIndexToRemove === -1) return;
+
     const newTabs = tabs.filter((tab) => tab.id !== idToRemove);
 
     // Check if the removed tab was active
-    const removedTab = tabs.find((tab) => tab.id === idToRemove);
+    const removedTab = tabs[tabIndexToRemove];
     if (removedTab && removedTab.active && newTabs.length > 0) {
       // Find the first tab after the removed tab to set as active
       const firstTabAfterRemove = newTabs.find((tab) => tab.id > idToRemove);
@@ -45,6 +48,12 @@ function Breadcrumb() {
     }
 
     setTabs(newTabs);
+
+    // Remove the corresponding customer transaction
+    const newCustomerTrx = customerTrx.filter(
+      (_, index) => index !== tabIndexToRemove
+    );
+    setCustomerTrx(newCustomerTrx);
   };
 
   const switchTab = (id: number) => {
@@ -89,8 +98,8 @@ function Breadcrumb() {
     return () => clearInterval(intervalId); // Cleanup interval on component unmount
   }, []);
 
-  const formatDateTime = (date) => {
-    const options = {
+  const formatDateTime = (date: Date) => {
+    const options: Intl.DateTimeFormatOptions = {
       weekday: "long",
       year: "numeric",
       month: "long",

@@ -7,10 +7,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const [user, setUser] = useLocalStorageState<User | null>("user", null);
-  const [tabs, setTabs] = useLocalStorageState<Tabs[]>("tabs", [
+  const [tabs, setTabs, removeTabs] = useLocalStorageState<Tabs[]>("tabs", [
     { id: 1, label: "Customer 1", active: true },
   ]);
-  const [customerTrx, setCustomerTrx] = useLocalStorageState<
+  const [customerTrx, setCustomerTrx, removeCustomerTrx] = useLocalStorageState<
     CustomerTransaction[]
   >("customerTrx", [
     {
@@ -26,6 +26,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
   ]);
 
   // Loading state and logic
+  const [isBarcodeScannerActive, setIsBarcodeScannerActive] = useState(true);
+  const [enterCount, setEnterCount] = useState(0);
+
   const [isLoading, setIsLoading] = useState(false);
   const [animation, setAnimation] = useState<"blue" | "green">("blue");
 
@@ -45,16 +48,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
   return (
     <AppContext.Provider
       value={{
+        isBarcodeScannerActive,
+        setIsBarcodeScannerActive,
         user,
         setUser,
         tabs,
         setTabs,
+        removeTabs,
         customerTrx,
         setCustomerTrx,
+        removeCustomerTrx,
         isLoading,
         showLoading,
         hideLoading,
         animation,
+        enterCount,
+        setEnterCount,
       }}>
       {children}
     </AppContext.Provider>

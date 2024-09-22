@@ -76,10 +76,13 @@ export const useFormattedNumber = (
   return [formatNumber(value), value, handleChange];
 };
 
+import { useState, useEffect, Dispatch, SetStateAction } from "react";
+import isEqual from "lodash.isequal";
+
 export const useLocalStorageState = <T>(
   key: string,
   initialValue: T
-): [T, Dispatch<SetStateAction<T>>] => {
+): [T, Dispatch<SetStateAction<T>>, () => void] => {
   const [state, setState] = useState<T>(() => {
     if (typeof window !== "undefined") {
       const storedValue = localStorage.getItem(key);
@@ -88,6 +91,7 @@ export const useLocalStorageState = <T>(
       return initialValue;
     }
   });
+
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
@@ -107,12 +111,27 @@ export const useLocalStorageState = <T>(
       setIsHydrated(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, initialValue]); // This useEffect should run only once on mount
+  }, [key, initialValue]);
 
-  return [state, setState];
+  // Function to remove the item from localStorage
+  const removeItem = () => {
+    localStorage.removeItem(key);
+    setState(initialValue);
+  };
+
+  return [state, setState, removeItem];
 };
 
 // Helper function to compare objects deeply
 const isEqual = (a: any, b: any) => {
   return JSON.stringify(a) === JSON.stringify(b);
+};
+
+export const formatDate = (isoString: string) => {
+  const date = new Date(isoString);
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0"); // Months are zero-indexed
+  const year = date.getUTCFullYear();
+
+  return `${day}-${month}-${year}`;
 };

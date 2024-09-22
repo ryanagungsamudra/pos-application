@@ -6,12 +6,18 @@ export interface AppContextType {
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
   tabs: Tabs[];
   setTabs: React.Dispatch<React.SetStateAction<Tabs[]>>;
+  removeTabs: () => void;
   customerTrx: CustomerTransaction[];
   setCustomerTrx: React.Dispatch<React.SetStateAction<CustomerTransaction[]>>;
+  removeCustomerTrx: () => void;
   isLoading: boolean;
+  isBarcodeScannerActive: boolean;
+  setIsBarcodeScannerActive: React.Dispatch<React.SetStateAction<boolean>>;
   showLoading: () => void;
   hideLoading: () => void;
   animation: "blue" | "green";
+  enterCount: number;
+  setEnterCount: React.Dispatch<React.SetStateAction<number>>;
 }
 
 export interface User {
@@ -27,6 +33,7 @@ export interface Tabs {
 }
 
 export interface Item {
+  id: number;
   name: string;
   barcode: string;
   brand: string;
@@ -44,6 +51,7 @@ export interface Item {
 export interface CustomerTransaction {
   items?: Item[];
   customer?: string;
+  customerId?: number;
   description?: string;
   payment_method?: string;
   bon_duration?: number;

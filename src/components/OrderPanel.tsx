@@ -4,8 +4,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 // Icons
 import IconSearch from "@/assets/icons/search.svg";
 import IconTrash from "@/assets/icons/trash-white.svg";
-import { useEffect, useRef, useState } from "react";
-import { formatCurrency } from "@/lib/utils";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { formatCurrency, formatDate } from "@/lib/utils";
 
 import {
   Dialog,
@@ -31,6 +31,7 @@ import { getCustomers } from "@/config/https/customer";
 import { Input } from "./ui/input";
 import { Item } from "@/provider/AppContext";
 import { InputNumeric } from "./ui/input-numeric";
+import { postTransaction } from "@/config/https/transaction";
 
 function OrderPanel() {
   const navigate = useNavigate();
@@ -39,18 +40,28 @@ function OrderPanel() {
     queryKey: ["items"],
     queryFn: getItems,
   });
+
   const { data: customers } = useQuery({
     queryKey: ["customers"],
     queryFn: getCustomers,
   });
 
-  const { tabs, customerTrx, setCustomerTrx } = useAppContext();
+  const {
+    tabs,
+    customerTrx,
+    setCustomerTrx,
+    isBarcodeScannerActive,
+    enterCount,
+  } = useAppContext();
   // Find the active tab
   const activeTab = tabs.find((tab) => tab.active);
   // Ensure there is an active tab and get its index
   const activeTabIndex = activeTab ? tabs.indexOf(activeTab) : 0;
   // Use the items from the customer transaction corresponding to the active tab
-  const activeTabItems = customerTrx[activeTabIndex]?.items || [];
+  const activeTabItems = useMemo(
+    () => customerTrx[activeTabIndex]?.items || [],
+    [customerTrx, activeTabIndex]
+  );
 
   const [enterPressedInDialog, setEnterPressedInDialog] = useState(false);
   const [open, setOpen] = useState({
@@ -62,8 +73,9 @@ function OrderPanel() {
   const [addingNewCustomer, setAddingNewCustomer] = useState(false);
   const [newCustomerName, setNewCustomerName] = useState("");
   const [newCustomerPhone, setNewCustomerPhone] = useState("");
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const [bonDuration, setBonDuration] = useState(0);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
+    null
+  );
   const [selectedItems, setSelectedItems] = useState([]);
 
   const checkoutRef = useRef<HTMLDivElement>(null);
@@ -80,8 +92,9 @@ function OrderPanel() {
       searchItem: !prevOpen.searchItem,
     }));
   };
-  const handleSubmit = () => {
-    if (customerTrx[activeTabIndex].money_change <= 0) {
+
+  const handleSubmit = useCallback(async () => {
+    if (customerTrx[activeTabIndex]?.money_change < 0) {
       return toast({
         variant: "destructive",
         title: "Uang Kurang!",
@@ -90,73 +103,53 @@ function OrderPanel() {
       });
     }
 
-    navigate("/customer");
-    console.log(
-      customerTrx[activeTabIndex],
-      "==JSON OBJECT READY TO SENT TO BACKEND=="
-    );
-
-    toast({
-      variant: "success",
-      title: "Checkout Berhasil!",
-      description: "Silahkan lakukan pembayaran",
-      duration: 2500,
-    });
-  };
-
-  useEffect(() => {
-    const handleKeyPress = (event: KeyboardEvent) => {
-      if (event.key === "Enter") {
-        if (!open.dialog) {
-          checkoutRef.current?.click();
-          setEnterPressedInDialog(true);
-        } else if (enterPressedInDialog) {
-          handleSubmit();
-        } else {
-          setEnterPressedInDialog(true);
-        }
-      }
-
-      switch (event.key) {
-        case "C":
-          if (event.shiftKey) {
-            openCustomerModal();
-          }
-          break;
-        case "c":
-          handlePaymentMethodChange("cash");
-          break;
-        case "t":
-          handlePaymentMethodChange("transfer");
-          break;
-        case "b":
-          handlePaymentMethodChange("bon");
-          break;
-        case "j":
-          if (event.metaKey || event.ctrlKey) {
-            event.preventDefault();
-            openSearchItemModal();
-          }
-          break;
-        default:
-          break;
-      }
+    const dataTrx = customerTrx[activeTabIndex];
+    const body = {
+      items: dataTrx?.items?.map((item) => ({
+        item_id: item.id,
+        qty: item.qty,
+        unit_price: item.unit_price,
+        total_price: item.total_unit_price,
+      })),
+      payment_method: dataTrx?.payment_method,
+      customer_id: dataTrx?.customerId,
+      bon_duration: dataTrx?.bon_duration || 0,
+      total_payment: dataTrx?.total,
+      cash: dataTrx?.cash,
+      money_change: dataTrx?.money_change,
+      description: dataTrx?.description,
     };
 
-    window.addEventListener("keydown", handleKeyPress);
-    return () => {
-      window.removeEventListener("keydown", handleKeyPress);
-    };
-  }, [open.dialog, enterPressedInDialog]);
-
-  useEffect(() => {
-    if (!open.dialog) {
-      setEnterPressedInDialog(false);
-    }
-  }, [open.dialog]);
+    await postTransaction(body)
+      .then((res) => {
+        console.log("res", res);
+        toast({
+          variant: "success",
+          title: "Checkout Berhasil!",
+          description: "Silahkan lakukan pembayaran",
+          duration: 2500,
+        });
+        navigate("/customer");
+      })
+      .catch((err) => {
+        console.log("err", err);
+        toast({
+          variant: "destructive",
+          title: "Checkout Gagal!",
+          description: "Silahkan coba lagi",
+          duration: 2500,
+        });
+      });
+  }, [customerTrx, activeTabIndex, navigate, toast]);
 
   // CUSTOMER MODAL START
-  const handleCustomerSelect = (customer) => {
+  interface Customer {
+    id: number;
+    first_name: string;
+    last_name: string;
+    phone: string;
+  }
+  const handleCustomerSelect = (customer: Customer | null) => {
     setSelectedCustomer(customer);
   };
 
@@ -169,11 +162,12 @@ function OrderPanel() {
     return initials.toUpperCase();
   };
 
-  const updateCustomerTrx = (customerName: string) => {
+  const updateCustomerTrx = (customerName: string, customerId: number) => {
     const newCustomerTrx = [...customerTrx];
     newCustomerTrx[activeTabIndex] = {
       ...newCustomerTrx[activeTabIndex],
       customer: customerName,
+      customerId: customerId,
     };
     setCustomerTrx(newCustomerTrx);
     setSelectedCustomer(null);
@@ -185,8 +179,11 @@ function OrderPanel() {
   };
 
   const handleApplyCustomer = () => {
-    if (selectedCustomer?.name) {
-      updateCustomerTrx(selectedCustomer.name);
+    if (selectedCustomer?.first_name) {
+      updateCustomerTrx(
+        selectedCustomer.first_name + " " + selectedCustomer.last_name,
+        selectedCustomer.id
+      );
     }
   };
 
@@ -233,7 +230,15 @@ function OrderPanel() {
       (item) => !existingItems.includes(item.barcode)
     );
 
-    newCustomerTrx[activeTabIndex].items.push(...itemsToAdd);
+    // add entire items
+    // newCustomerTrx[activeTabIndex].items.push(...itemsToAdd);
+
+    // manually add items
+    itemsToAdd.forEach((item) => {
+      const newItem = { ...item, qty: 1 };
+      newCustomerTrx[activeTabIndex].items.push(newItem);
+    });
+
     setCustomerTrx(newCustomerTrx);
     setSelectedItems([]); // Reset selected items
 
@@ -261,7 +266,9 @@ function OrderPanel() {
     return cash - total;
   };
 
-  const handleDescriptionChange = (e) => {
+  const handleDescriptionChange = (
+    e: React.ChangeEvent<HTMLTextAreaElement>
+  ) => {
     const value = e.target.value;
     const newCustomerTrx = [...customerTrx];
     newCustomerTrx[activeTabIndex] = {
@@ -271,17 +278,21 @@ function OrderPanel() {
     setCustomerTrx(newCustomerTrx);
   };
 
-  const handlePaymentMethodChange = (newValue) => {
-    const newCustomerTrx = [...customerTrx];
-    newCustomerTrx[activeTabIndex] = {
-      ...newCustomerTrx[activeTabIndex],
-      payment_method: newValue,
-    };
-    setCustomerTrx(newCustomerTrx);
-  };
+  const handlePaymentMethodChange = useCallback(
+    (newValue: string) => {
+      const newCustomerTrx = [...customerTrx];
+      newCustomerTrx[activeTabIndex] = {
+        ...newCustomerTrx[activeTabIndex],
+        payment_method: newValue,
+      };
+      setCustomerTrx(newCustomerTrx);
+    },
+    [customerTrx, activeTabIndex, setCustomerTrx]
+  );
+
   const paymentMethodSelected = customerTrx[activeTabIndex]?.payment_method;
 
-  const handleCash = (newValue) => {
+  const handleCash = (newValue: number) => {
     const newCustomerTrx = [...customerTrx];
 
     newCustomerTrx[activeTabIndex] = {
@@ -291,10 +302,79 @@ function OrderPanel() {
     setCustomerTrx(newCustomerTrx);
   };
 
-  useEffect(() => {
-    const total = calculateTotal(activeTabItems);
-    const change = calculateChange(total, customerTrx[activeTabIndex]?.cash);
+  const handleBonDuration = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value);
 
+    const newCustomerTrx = [...customerTrx];
+    newCustomerTrx[activeTabIndex] = {
+      ...newCustomerTrx[activeTabIndex],
+      bon_duration: value,
+    };
+    setCustomerTrx(newCustomerTrx);
+  };
+
+  // === UseEffect === //
+
+  // useEffect(() => {
+  //   const handleKeyPress = (event: KeyboardEvent) => {
+  //     if (event.key === "Enter" && !isBarcodeScannerActive) {
+  //       if (!open.dialog) {
+  //         checkoutRef.current?.click();
+  //         setEnterPressedInDialog(true);
+  //       } else if (enterPressedInDialog) {
+  //         handleSubmit();
+  //       } else {
+  //         setEnterPressedInDialog(true);
+  //       }
+  //     }
+
+  //     switch (event.key) {
+  //       case "C":
+  //         if (event.shiftKey) {
+  //           openCustomerModal();
+  //         }
+  //         break;
+  //       case "c":
+  //         handlePaymentMethodChange("cash");
+  //         break;
+  //       case "t":
+  //         handlePaymentMethodChange("transfer");
+  //         break;
+  //       case "b":
+  //         handlePaymentMethodChange("bon");
+  //         break;
+  //       case "j":
+  //         if (event.metaKey || event.ctrlKey) {
+  //           event.preventDefault();
+  //           openSearchItemModal();
+  //         }
+  //         break;
+  //       default:
+  //         break;
+  //     }
+  //   };
+
+  //   window.addEventListener("keydown", handleKeyPress);
+  //   return () => {
+  //     window.removeEventListener("keydown", handleKeyPress);
+  //   };
+  // }, [
+  //   open.dialog,
+  //   enterPressedInDialog,
+  //   handlePaymentMethodChange,
+  //   handleSubmit,
+  // ]);
+
+  useEffect(() => {
+    if (!open.dialog) {
+      setEnterPressedInDialog(false);
+    }
+  }, [open.dialog]);
+
+  const total = calculateTotal(activeTabItems);
+  const change = calculateChange(total, customerTrx[activeTabIndex]?.cash);
+
+  useEffect(() => {
     // Update customer transaction based on active tab
     setCustomerTrx((prevCustomerTrx) => {
       const newCustomerTrx = [...prevCustomerTrx];
@@ -302,17 +382,19 @@ function OrderPanel() {
         ...newCustomerTrx[activeTabIndex],
         total,
         money_change: change,
-        bon_duration: bonDuration,
       };
       return newCustomerTrx;
     });
-  }, [
-    activeTabItems,
-    activeTabIndex,
-    customerTrx,
-    bonDuration,
-    setCustomerTrx,
-  ]);
+  }, [activeTabItems, activeTabIndex, customerTrx, setCustomerTrx]);
+
+  useEffect(() => {
+    const newCustomerTrx = [...customerTrx];
+    newCustomerTrx[activeTabIndex] = {
+      ...newCustomerTrx[activeTabIndex],
+      cash: total,
+    };
+    setCustomerTrx(newCustomerTrx);
+  }, [customerTrx[activeTabIndex]?.total]);
 
   return (
     <div className="flex gap-5 mt-[0.2rem] -m-[1.2%] px-4 pt-3">
@@ -386,21 +468,23 @@ function OrderPanel() {
               {/* Add new customer ends here */}
 
               {!addingNewCustomer && (
-                <ScrollArea className="h-full">
-                  {customers?.data?.map((customer) => (
+                <ScrollArea className="min-h-[300px]">
+                  {customers?.data?.data?.map((customer: Customer) => (
                     <div
-                      key={customer.name}
+                      key={customer.id}
                       onClick={() => handleCustomerSelect(customer)}
                       className={`flex items-center justify-between p-2 hover:bg-secondary-gradient hover:text-white cursor-pointer`}>
                       <div className="flex items-center gap-3">
                         <div className="w-[40px] h-[40px] bg-[#E4E7EC] flex items-center justify-center rounded-full p-5">
                           <p className="text-black">
-                            {getInitials(customer.name)}
+                            {getInitials(
+                              customer.first_name + " " + customer.last_name
+                            )}
                           </p>
                         </div>
                         <div>
                           <p className="text-[16px] font-bold">
-                            {customer.name}
+                            {customer.first_name + " " + customer.last_name}
                           </p>
                           <p>{customer.phone}</p>
                         </div>
@@ -411,8 +495,10 @@ function OrderPanel() {
                         className="mr-4">
                         <input
                           type="radio"
-                          value={customer.name}
-                          checked={selectedCustomer?.name === customer.name}
+                          value={customer.first_name + " " + customer.last_name}
+                          checked={
+                            selectedCustomer?.first_name === customer.first_name
+                          }
                           onChange={() => handleCustomerSelect(customer)}
                           className={`peer sr-only`} // sr-only hides the default radio button visually
                         />
@@ -572,9 +658,14 @@ function OrderPanel() {
                 </Label>
                 <div className="flex items-center gap-1">
                   <input
+                    value={
+                      customerTrx[activeTabIndex]?.bon_duration
+                        ? customerTrx[activeTabIndex]?.bon_duration
+                        : null
+                    }
                     type="text"
                     className="w-[34px] h-[18px] border-[0.4px] border-solid border-black"
-                    onChange={(e) => setBonDuration(parseInt(e.target.value))}
+                    onChange={handleBonDuration}
                   />
                   <p>Hari</p>
                 </div>
@@ -601,7 +692,7 @@ function OrderPanel() {
               {/* Search modal starts here */}
               <DialogContent
                 aria-describedby="search"
-                className="sm:max-w-[600px] h-[500px]">
+                className="sm:max-w-[1000px] h-[700px]">
                 <DialogHeader>
                   <DialogTitle>Pilih Produk</DialogTitle>
                   <DialogDescription>
@@ -618,35 +709,63 @@ function OrderPanel() {
                     className="flex w-full py-3 text-sm bg-transparent rounded-md outline-none h-11 placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
                   />
                 </div>
-                <ScrollArea className="h-full">
-                  {items?.data?.map((item) => {
+                <ScrollArea className="h-[450px]">
+                  {items?.data?.data?.map((item, index) => {
                     const isDuplicate = customerTrx?.[
                       activeTabIndex
                     ]?.items?.some((i) => i.barcode === item.barcode);
 
                     return (
                       <div
-                        key={item.name}
+                        key={item.barcode}
                         onClick={() => handleItemClick(item)}
                         className={`flex items-center justify-between p-2 hover:bg-gray-200 cursor-pointer ${
                           selectedItems.includes(item) ? "bg-gray-200" : ""
                         }`}>
-                        <p className="text-[16px] font-bold">
-                          {item.name} |{" "}
-                          <span className="font-normal">{item.barcode}</span>
-                          {isDuplicate && (
-                            <span className="text-[#FF0000] text-sm font-normal">
-                              {" "}
-                              (Sudah dipilih)
-                            </span>
-                          )}
-                        </p>
-                        <Checkbox
-                          disabled={isDuplicate}
-                          checked={selectedItems.includes(item)}
-                          onChange={() => handleItemClick(item)}
-                          className="mr-4 cursor-pointer"
-                        />
+                        <div className="w-[1%]">
+                          <p>{index + 1}</p>
+                        </div>
+
+                        <div className="w-[40%]">
+                          <p className="text-[16px] font-bold">
+                            {item.name} |{" "}
+                            <span className="font-normal">{item.barcode}</span>
+                            {isDuplicate && (
+                              <span className="text-[#FF0000] text-sm font-normal">
+                                {" "}
+                                (Sudah dipilih)
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-[16px] font-normal">
+                            {item.brand} | {item.guarantee} | {item.type}
+                          </p>
+                        </div>
+
+                        <div className="w-[20%]">
+                          <p className="text-[16px] font-bold">
+                            {item.product_code}
+                          </p>
+                          <p className="text-[16px] font-normal">
+                            {formatDate(item.product_code_updated_at)}
+                          </p>
+                        </div>
+
+                        <div className="w-[20%]">
+                          <p className="text-[16px] font-bold">{item.market}</p>
+                          <p className="text-[16px] font-normal">
+                            {formatDate(item.market_updated_at)}
+                          </p>
+                        </div>
+
+                        <div className="w-[5%]">
+                          <Checkbox
+                            disabled={isDuplicate}
+                            checked={selectedItems.includes(item)}
+                            onChange={() => handleItemClick(item)}
+                            className="mr-4 cursor-pointer"
+                          />
+                        </div>
                       </div>
                     );
                   })}
@@ -708,7 +827,7 @@ function OrderPanel() {
                     value={
                       customerTrx[activeTabIndex].cash
                         ? customerTrx[activeTabIndex].cash
-                        : 0
+                        : customerTrx[activeTabIndex].total
                     }
                     onChange={handleCash}
                     className="w-[120px] font-normal border-[0.4px] border-solid border-black text-[20px]"
@@ -723,7 +842,7 @@ function OrderPanel() {
                 <p className="text-[20px] font-normal">
                   {customerTrx[activeTabIndex].money_change
                     ? formatCurrency(customerTrx[activeTabIndex].money_change)
-                    : ""}
+                    : 0}
                 </p>
               </div>
             </>

@@ -33,7 +33,7 @@ const Login: React.FC = () => {
       setError(null);
 
       // set token to cookie
-      const token = JSON.stringify(data.data.data.token);
+      const token = data.data.data.token;
       Cookies.set("token", token, { expires: 1 });
       // set the rest of data to context
       setUser((prev) => ({
