@@ -31,7 +31,7 @@ function Customer() {
       <div className="flex justify-between w-full gap-8">
         <div className="w-[55%] mt-8">
           <div className="flex items-center">
-            <div className="w-[200px] h-[44px] rounded-[10px] bg-[#DDEDFF] flex items-center justify-between p-[5px] pl-[12px]">
+            <div className="w-[150px] italic h-[44px] rounded-[10px] bg-[#DDEDFF] flex items-center justify-between p-[5px] pl-[12px]">
               <p className="text-[20px] font-semibold text-black">Pembayaran</p>
             </div>
 
@@ -41,7 +41,7 @@ function Customer() {
           </div>
 
           <div className="flex items-center pt-4">
-            <div className="w-[200px] h-[44px] rounded-[10px] bg-[#DDEDFF] flex items-center justify-between p-[5px] pl-[12px]">
+            <div className="w-[150px] italic h-[44px] rounded-[10px] bg-[#DDEDFF] flex items-center justify-between p-[5px] pl-[12px]">
               <p className="text-[20px] font-semibold text-black">Keterangan</p>
             </div>
 

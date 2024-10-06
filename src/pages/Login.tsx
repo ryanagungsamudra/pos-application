@@ -49,7 +49,7 @@ const Login: React.FC = () => {
           variant: "success",
           title: "Login Berhasil",
           description: "Selamat datang kembali!",
-          duration: 2500,
+          duration: 1000,
         });
         navigate("/");
       }, 3000);

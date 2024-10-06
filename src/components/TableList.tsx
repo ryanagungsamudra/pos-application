@@ -6,7 +6,7 @@ import noDataAnimation from "@/assets/lottie/no-data.json";
 import { Item } from "@/provider/AppContext";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { InputNumeric } from "./ui/input-numeric";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 // import { useAppContext } from "@/provider/useAppContext";
 
 const CustomTableHeader = ({
@@ -54,6 +54,7 @@ interface CustomTableRowProps {
   index: number;
   onDelete: (index: number) => void;
   onUpdate: (index: number, updatedProperties: Partial<Item>) => void;
+  inputRef: React.RefObject<HTMLInputElement>;
 }
 const CustomTableRow = ({
   customerPanel,
@@ -62,6 +63,7 @@ const CustomTableRow = ({
   index,
   onDelete,
   onUpdate,
+  inputRef,
 }: CustomTableRowProps) => {
   const bgColor = index % 2 === 0 ? "bg-[#DDEEFF]" : "bg-[#fff]";
 
@@ -136,6 +138,7 @@ const CustomTableRow = ({
           <div className="flex gap-2">
             <p className="font-normal text-[20px]">Rp</p>
             <InputNumeric
+              ref={inputRef}
               value={rowData.unit_price}
               onChange={handleUnitPriceChange}
               className=" w-[110px] font-normal border-[0.4px] border-solid border-black text-[20px]"
@@ -164,7 +167,8 @@ const CustomTableRow = ({
 };
 
 function TableList({ customerPanel = false }: { customerPanel?: boolean }) {
-  const { tabs, customerTrx, setCustomerTrx } = useAppContext();
+  const { tabs, customerTrx, setCustomerTrx, enterCount, setEnterCount } =
+    useAppContext();
 
   // Find the active tab
   const activeTab = tabs.find((tab) => tab.active);
@@ -213,16 +217,33 @@ function TableList({ customerPanel = false }: { customerPanel?: boolean }) {
   };
 
   // Handle enter shortcut
-  const inputRefs = useRef([]);
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
-      const currentIndex = e.target.dataset.index;
-      if (inputRefs.current[currentIndex]) {
-        inputRefs.current[currentIndex].focus();
-        inputRefs.current[currentIndex].select();
+  const inputRefs = useRef<Array<HTMLInputElement | null>>([]); // Refs to store input fields
+
+  useEffect(() => {
+    const hasZeroUnitPrice = items.some(
+      (item) => item.unit_price === 0 || !item.unit_price
+    );
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Enter") {
+        if (hasZeroUnitPrice) {
+          // Check if the current `enterCount` index has a valid ref to focus
+          if (inputRefs.current[enterCount]) {
+            inputRefs.current[enterCount]?.focus();
+            inputRefs.current[enterCount]?.select(); // Automatically select the value
+          }
+
+          // Increment the `enterCount` and reset if it exceeds the number of items
+          setEnterCount((prevCount) => (prevCount + 1) % items.length);
+        }
       }
-    }
-  };
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [enterCount, setEnterCount, items.length, items]);
 
   return (
     <div className="flex flex-col border-b-4">
@@ -237,8 +258,8 @@ function TableList({ customerPanel = false }: { customerPanel?: boolean }) {
               <Lottie
                 style={{ width: 150, margin: "auto" }}
                 animationData={noDataAnimation}
-                loop={true}
-                autoPlay
+                loop={false}
+                // autoPlay
               />
             </div>
             <div className="-mt-[6rem]">
@@ -259,6 +280,7 @@ function TableList({ customerPanel = false }: { customerPanel?: boolean }) {
             index={index}
             onDelete={handleDelete}
             onUpdate={modifyItem}
+            inputRef={(ref) => (inputRefs.current[index] = ref)}
           />
         ))}
         <ScrollBar orientation="vertical" />

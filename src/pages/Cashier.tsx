@@ -26,7 +26,7 @@ function Cashier() {
   }, [enterCount, setEnterCount]);
 
   return (
-    <div className="p-[1.2%]">
+    <div className="p-[1.2%] h-screen overflow-hidden">
       <Navbar />
       <Breadcrumb />
       <TableList />

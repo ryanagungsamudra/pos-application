@@ -314,56 +314,64 @@ function OrderPanel() {
   };
 
   // === UseEffect === //
+  useEffect(() => {
+    const items = customerTrx[activeTabIndex]?.items || [];
 
-  // useEffect(() => {
-  //   const handleKeyPress = (event: KeyboardEvent) => {
-  //     if (event.key === "Enter" && !isBarcodeScannerActive) {
-  //       if (!open.dialog) {
-  //         checkoutRef.current?.click();
-  //         setEnterPressedInDialog(true);
-  //       } else if (enterPressedInDialog) {
-  //         handleSubmit();
-  //       } else {
-  //         setEnterPressedInDialog(true);
-  //       }
-  //     }
+    const hasZeroUnitPrice = items.some(
+      (item) => item.unit_price === 0 || !item.unit_price
+    );
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (
+        event.key === "Enter" &&
+        !isBarcodeScannerActive &&
+        !hasZeroUnitPrice
+      ) {
+        if (!open.dialog) {
+          checkoutRef.current?.click();
+          setEnterPressedInDialog(true);
+        } else if (enterPressedInDialog) {
+          handleSubmit();
+        } else {
+          setEnterPressedInDialog(true);
+        }
+      }
 
-  //     switch (event.key) {
-  //       case "C":
-  //         if (event.shiftKey) {
-  //           openCustomerModal();
-  //         }
-  //         break;
-  //       case "c":
-  //         handlePaymentMethodChange("cash");
-  //         break;
-  //       case "t":
-  //         handlePaymentMethodChange("transfer");
-  //         break;
-  //       case "b":
-  //         handlePaymentMethodChange("bon");
-  //         break;
-  //       case "j":
-  //         if (event.metaKey || event.ctrlKey) {
-  //           event.preventDefault();
-  //           openSearchItemModal();
-  //         }
-  //         break;
-  //       default:
-  //         break;
-  //     }
-  //   };
+      switch (event.key) {
+        case "C":
+          if (event.shiftKey) {
+            openCustomerModal();
+          }
+          break;
+        case "c":
+          handlePaymentMethodChange("cash");
+          break;
+        case "t":
+          handlePaymentMethodChange("transfer");
+          break;
+        case "b":
+          handlePaymentMethodChange("bon");
+          break;
+        case "j":
+          if (event.metaKey || event.ctrlKey) {
+            event.preventDefault();
+            openSearchItemModal();
+          }
+          break;
+        default:
+          break;
+      }
+    };
 
-  //   window.addEventListener("keydown", handleKeyPress);
-  //   return () => {
-  //     window.removeEventListener("keydown", handleKeyPress);
-  //   };
-  // }, [
-  //   open.dialog,
-  //   enterPressedInDialog,
-  //   handlePaymentMethodChange,
-  //   handleSubmit,
-  // ]);
+    window.addEventListener("keydown", handleKeyPress);
+    return () => {
+      window.removeEventListener("keydown", handleKeyPress);
+    };
+  }, [
+    open.dialog,
+    enterPressedInDialog,
+    handlePaymentMethodChange,
+    handleSubmit,
+  ]);
 
   useEffect(() => {
     if (!open.dialog) {
@@ -808,7 +816,7 @@ function OrderPanel() {
 
       {/* Checkout */}
       <div className="w-full">
-        <div className="w-full h-140px drop-shadow-lg border-2 bg-white rounded-tr-[10px] rounded-tl-[10px] p-4">
+        <div className="w-full h-[135px] drop-shadow-lg border-2 bg-white rounded-tr-[10px] rounded-tl-[10px] p-4">
           {customerTrx[activeTabIndex] && (
             <>
               <div className="flex justify-between w-full">

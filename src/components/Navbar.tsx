@@ -26,12 +26,8 @@ function Navbar({ dropdownShown = true }: { dropdownShown?: boolean }) {
   };
 
   return (
-    <div className="flex w-full h-[9.22%] justify-between items-center px-4 py-2 bg-white drop-shadow-lg rounded-[10px]">
-      <img
-        src={Logo}
-        alt="Logo"
-        className="w-[123px] h-[62px] cursor-pointer"
-      />
+    <div className="flex w-full h-[50px] justify-between items-center px-4 py-2 bg-white drop-shadow-lg rounded-[10px]">
+      <img src={Logo} alt="Logo" className="w-[85px] h-[50px] cursor-pointer" />
 
       {dropdownShown && (
         <div>
@@ -47,14 +43,14 @@ function Navbar({ dropdownShown = true }: { dropdownShown?: boolean }) {
                   <img
                     src={IconProfile}
                     alt="Icon Profile"
-                    className="w-[33px] h-[46px]"
+                    className="w-[30px] h-[30px]"
                   />
-                  <p className="font-bold text-[12px] text-center">
+                  <p className="font-bold text-[10px] text-center">
                     {user?.first_name ? `${user?.first_name}` : "User"}
                   </p>
                 </div>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-6 mr-6 mt-4 bg-white hover:bg-[#DDEEFF] hover:font-normal">
+              <DropdownMenuContent className="w-4 mr-6 mt-4 bg-white hover:bg-[#DDEEFF] hover:font-normal">
                 <DropdownMenuItem
                   className="cursor-pointer"
                   onClick={handleLogout}>

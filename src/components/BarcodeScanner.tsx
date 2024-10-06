@@ -132,18 +132,18 @@ const BarcodeScanner: React.FC = () => {
           <img
             src={isBarcodeScannerActive ? IconBarcodeOn : IconBarcodeOff}
             alt="Icon Barcode"
-            className="w-[46px] h-[46px]"
+            className="w-[30px] h-[30px]"
           />
-          <div className="absolute flex items-center justify-center w-6 h-3 transform -translate-x-1/2 -translate-y-1/2 bg-white top-1/2 left-1/2">
+          <div className="absolute flex items-center justify-center w-4 h-3 transform -translate-x-1/2 -translate-y-1/2 bg-white top-1/2 left-1/2">
             <p
-              className={`text-[10px] ${
+              className={`text-[8px] ${
                 isBarcodeScannerActive ? "text-[#038B0A]" : "text-[#B30A28]"
               }  font-bold`}>
               {isBarcodeScannerActive ? "ON" : "OFF"}
             </p>
           </div>
         </div>
-        <p className="font-bold text-[12px] text-center">Barcode</p>
+        <p className="font-bold text-[10px] text-center">Barcode</p>
       </div>
     </div>
   );

@@ -106,7 +106,7 @@ function Breadcrumb() {
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-      second: "2-digit",
+      // second: "2-digit",
       hour12: false,
       timeZoneName: "short",
     };
@@ -114,7 +114,7 @@ function Breadcrumb() {
   };
 
   return (
-    <div className="flex items-center justify-between w-full h-full mt-2">
+    <div className="flex items-center justify-between w-full mt-2">
       <div className="flex gap-1">
         {tabs.map((tab) => (
           <div
