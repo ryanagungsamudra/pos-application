@@ -32,6 +32,7 @@ import { Input } from "./ui/input";
 import { Item } from "@/provider/AppContext";
 import { InputNumeric } from "./ui/input-numeric";
 import { postTransaction } from "@/config/https/transaction";
+import Invoice from "./Invoice";
 
 function OrderPanel() {
   const navigate = useNavigate();
@@ -93,53 +94,61 @@ function OrderPanel() {
     }));
   };
 
+  const invoiceRef = useRef(); // Create a reference to the Invoice component
+
+  const handlePrint = () => {
+    invoiceRef?.current?.handlePrint(); // Call the handlePrint method in Invoice
+  };
+
   const handleSubmit = useCallback(async () => {
-    if (customerTrx[activeTabIndex]?.money_change < 0) {
-      return toast({
-        variant: "destructive",
-        title: "Uang Kurang!",
-        description: "Silahkan tambahkan uang",
-        duration: 2500,
-      });
-    }
+    handlePrint();
+    // if (customerTrx[activeTabIndex]?.money_change < 0) {
+    //   return toast({
+    //     variant: "destructive",
+    //     title: "Uang Kurang!",
+    //     description: "Silahkan tambahkan uang",
+    //     duration: 2500,
+    //   });
+    // }
 
-    const dataTrx = customerTrx[activeTabIndex];
-    const body = {
-      items: dataTrx?.items?.map((item) => ({
-        item_id: item.id,
-        qty: item.qty,
-        unit_price: item.unit_price,
-        total_price: item.total_unit_price,
-      })),
-      payment_method: dataTrx?.payment_method,
-      customer_id: dataTrx?.customerId,
-      bon_duration: dataTrx?.bon_duration || 0,
-      total_payment: dataTrx?.total,
-      cash: dataTrx?.cash,
-      money_change: dataTrx?.money_change,
-      description: dataTrx?.description,
-    };
+    // const dataTrx = customerTrx[activeTabIndex];
+    // const body = {
+    //   items: dataTrx?.items?.map((item) => ({
+    //     item_id: item.id,
+    //     qty: item.qty,
+    //     unit_price: item.unit_price,
+    //     total_price: item.total_unit_price,
+    //   })),
+    //   payment_method: dataTrx?.payment_method,
+    //   customer_id: dataTrx?.customerId,
+    //   bon_duration: dataTrx?.bon_duration || 0,
+    //   total_payment: dataTrx?.total,
+    //   cash: dataTrx?.cash,
+    //   money_change: dataTrx?.money_change,
+    //   description: dataTrx?.description,
+    // };
 
-    await postTransaction(body)
-      .then((res) => {
-        console.log("res", res);
-        toast({
-          variant: "success",
-          title: "Checkout Berhasil!",
-          description: "Silahkan lakukan pembayaran",
-          duration: 2500,
-        });
-        navigate("/customer");
-      })
-      .catch((err) => {
-        console.log("err", err);
-        toast({
-          variant: "destructive",
-          title: "Checkout Gagal!",
-          description: "Silahkan coba lagi",
-          duration: 2500,
-        });
-      });
+    // await postTransaction(body)
+    //   .then((res) => {
+    //     handlePrint();
+    //     console.log("res", res);
+    //     toast({
+    //       variant: "success",
+    //       title: "Checkout Berhasil!",
+    //       description: "Silahkan lakukan pembayaran",
+    //       duration: 2500,
+    //     });
+    //     navigate("/customer");
+    //   })
+    //   .catch((err) => {
+    //     console.log("err", err);
+    //     toast({
+    //       variant: "destructive",
+    //       title: "Checkout Gagal!",
+    //       description: "Silahkan coba lagi",
+    //       duration: 2500,
+    //     });
+    //   });
   }, [customerTrx, activeTabIndex, navigate, toast]);
 
   // CUSTOMER MODAL START
@@ -313,19 +322,14 @@ function OrderPanel() {
     setCustomerTrx(newCustomerTrx);
   };
 
+  const itemsActive = customerTrx[activeTabIndex]?.items || [];
   // === UseEffect === //
   useEffect(() => {
-    const items = customerTrx[activeTabIndex]?.items || [];
-
-    const hasZeroUnitPrice = items.some(
+    const hasZeroUnitPrice = itemsActive.some(
       (item) => item.unit_price === 0 || !item.unit_price
     );
     const handleKeyPress = (event: KeyboardEvent) => {
-      if (
-        event.key === "Enter" &&
-        !isBarcodeScannerActive &&
-        !hasZeroUnitPrice
-      ) {
+      if (event.key === "Enter" && !hasZeroUnitPrice) {
         if (!open.dialog) {
           checkoutRef.current?.click();
           setEnterPressedInDialog(true);
@@ -910,6 +914,10 @@ function OrderPanel() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+      </div>
+
+      <div className="hidden">
+        <Invoice ref={invoiceRef} />
       </div>
     </div>
   );
