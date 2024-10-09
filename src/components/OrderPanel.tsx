@@ -55,15 +55,16 @@ function OrderPanel() {
     enterCount,
   } = useAppContext();
   // Find the active tab
-  const activeTab = tabs.find((tab) => tab.active);
-  // Ensure there is an active tab and get its index
-  const activeTabIndex = activeTab ? tabs.indexOf(activeTab) : 0;
+  const activeTabIndex = useMemo(() => {
+    const activeTab = tabs.find((tab) => tab.active);
+    return activeTab ? tabs.indexOf(activeTab) : 0;
+  }, [tabs]);
+
   // Use the items from the customer transaction corresponding to the active tab
   const activeTabItems = useMemo(
     () => customerTrx[activeTabIndex]?.items || [],
     [customerTrx, activeTabIndex]
   );
-
   const [enterPressedInDialog, setEnterPressedInDialog] = useState(false);
   const [open, setOpen] = useState({
     customer: false,
@@ -101,54 +102,53 @@ function OrderPanel() {
   };
 
   const handleSubmit = useCallback(async () => {
-    handlePrint();
-    // if (customerTrx[activeTabIndex]?.money_change < 0) {
-    //   return toast({
-    //     variant: "destructive",
-    //     title: "Uang Kurang!",
-    //     description: "Silahkan tambahkan uang",
-    //     duration: 2500,
-    //   });
-    // }
+    if (customerTrx[activeTabIndex]?.money_change < 0) {
+      return toast({
+        variant: "destructive",
+        title: "Uang Kurang!",
+        description: "Silahkan tambahkan uang",
+        duration: 2500,
+      });
+    }
 
-    // const dataTrx = customerTrx[activeTabIndex];
-    // const body = {
-    //   items: dataTrx?.items?.map((item) => ({
-    //     item_id: item.id,
-    //     qty: item.qty,
-    //     unit_price: item.unit_price,
-    //     total_price: item.total_unit_price,
-    //   })),
-    //   payment_method: dataTrx?.payment_method,
-    //   customer_id: dataTrx?.customerId,
-    //   bon_duration: dataTrx?.bon_duration || 0,
-    //   total_payment: dataTrx?.total,
-    //   cash: dataTrx?.cash,
-    //   money_change: dataTrx?.money_change,
-    //   description: dataTrx?.description,
-    // };
+    const dataTrx = customerTrx[activeTabIndex];
+    const body = {
+      items: dataTrx?.items?.map((item) => ({
+        item_id: item.id,
+        qty: item.qty,
+        unit_price: item.unit_price,
+        total_price: item.total_unit_price,
+      })),
+      payment_method: dataTrx?.payment_method,
+      customer_id: dataTrx?.customerId,
+      bon_duration: dataTrx?.bon_duration || 0,
+      total_payment: dataTrx?.total,
+      cash: dataTrx?.cash,
+      money_change: dataTrx?.money_change,
+      description: dataTrx?.description,
+    };
 
-    // await postTransaction(body)
-    //   .then((res) => {
-    //     handlePrint();
-    //     console.log("res", res);
-    //     toast({
-    //       variant: "success",
-    //       title: "Checkout Berhasil!",
-    //       description: "Silahkan lakukan pembayaran",
-    //       duration: 2500,
-    //     });
-    //     navigate("/customer");
-    //   })
-    //   .catch((err) => {
-    //     console.log("err", err);
-    //     toast({
-    //       variant: "destructive",
-    //       title: "Checkout Gagal!",
-    //       description: "Silahkan coba lagi",
-    //       duration: 2500,
-    //     });
-    //   });
+    await postTransaction(body)
+      .then((res) => {
+        handlePrint();
+        console.log("res", res);
+        toast({
+          variant: "success",
+          title: "Checkout Berhasil!",
+          description: "Silahkan lakukan pembayaran",
+          duration: 2500,
+        });
+        navigate("/customer");
+      })
+      .catch((err) => {
+        console.log("err", err);
+        toast({
+          variant: "destructive",
+          title: "Checkout Gagal!",
+          description: "Silahkan coba lagi",
+          duration: 2500,
+        });
+      });
   }, [customerTrx, activeTabIndex, navigate, toast]);
 
   // CUSTOMER MODAL START
@@ -425,9 +425,8 @@ function OrderPanel() {
             {/* Customers modal starts here */}
             <DialogContent
               aria-describedby="search"
-              className={`sm:max-w-[450px] ${
-                addingNewCustomer ? "h-[300px]" : "h-[600px]"
-              }`}>
+              className={`sm:max-w-[450px] ${addingNewCustomer ? "h-[300px]" : "h-[600px]"
+                }`}>
               <DialogHeader>
                 <DialogTitle>
                   {addingNewCustomer ? "Tambah Baru" : "Pilih Customer"}
@@ -598,74 +597,65 @@ function OrderPanel() {
             className="flex gap-[12px]">
             <div
               onClick={() => handlePaymentMethodChange("cash")}
-              className={`flex justify-center items-center space-x-2 w-[104px] h-[60px] border-[1.1px] ${
-                paymentMethodSelected === "cash"
-                  ? "border-[#7ABFFF]"
-                  : "border-[#D1D3D5]"
-              } rounded-[10px] cursor-pointer`}>
+              className={`flex justify-center items-center space-x-2 w-[104px] h-[60px] border-[1.1px] ${paymentMethodSelected === "cash"
+                ? "border-[#7ABFFF]"
+                : "border-[#D1D3D5]"
+                } rounded-[10px] cursor-pointer`}>
               <RadioGroupItem
                 value="cash"
                 id="cash"
-                className={`${
-                  paymentMethodSelected === "cash"
-                    ? "text-[#7ABFFF]"
-                    : "text-[#000]"
-                }`}
+                className={`${paymentMethodSelected === "cash"
+                  ? "text-[#7ABFFF]"
+                  : "text-[#000]"
+                  }`}
               />
               <Label
                 htmlFor="cash"
-                className={`text-[18px] ${
-                  paymentMethodSelected === "cash" ? "text-[#7ABFFF]" : ""
-                }`}>
+                className={`text-[18px] ${paymentMethodSelected === "cash" ? "text-[#7ABFFF]" : ""
+                  }`}>
                 Cash
               </Label>
             </div>
             <div
               onClick={() => handlePaymentMethodChange("transfer")}
-              className={`flex justify-center items-center space-x-2 w-[124px] h-[60px] border-[1.1px] ${
-                paymentMethodSelected === "transfer"
-                  ? "border-[#7ABFFF]"
-                  : "border-[#D1D3D5]"
-              } rounded-[10px] cursor-pointer`}>
+              className={`flex justify-center items-center space-x-2 w-[124px] h-[60px] border-[1.1px] ${paymentMethodSelected === "transfer"
+                ? "border-[#7ABFFF]"
+                : "border-[#D1D3D5]"
+                } rounded-[10px] cursor-pointer`}>
               <RadioGroupItem
                 value="transfer"
                 id="transfer"
-                className={`${
-                  paymentMethodSelected === "transfer"
-                    ? "text-[#7ABFFF]"
-                    : "text-[#000]"
-                }`}
+                className={`${paymentMethodSelected === "transfer"
+                  ? "text-[#7ABFFF]"
+                  : "text-[#000]"
+                  }`}
               />
               <Label
                 htmlFor="transfer"
-                className={`text-[18px] ${
-                  paymentMethodSelected === "transfer" ? "text-[#7ABFFF]" : ""
-                }`}>
+                className={`text-[18px] ${paymentMethodSelected === "transfer" ? "text-[#7ABFFF]" : ""
+                  }`}>
                 Transfer
               </Label>
             </div>
             <div
               onClick={() => handlePaymentMethodChange("bon")}
-              className={`flex justify-center items-center space-x-2 w-[140px] h-[60px] border-[1.1px] ${
-                paymentMethodSelected === "bon"
-                  ? "border-[#7ABFFF]"
-                  : "border-[#D1D3D5]"
-              } rounded-[10px] cursor-pointer`}>
+              className={`flex justify-center items-center space-x-2 w-[140px] h-[60px] border-[1.1px] ${paymentMethodSelected === "bon"
+                ? "border-[#7ABFFF]"
+                : "border-[#D1D3D5]"
+                } rounded-[10px] cursor-pointer`}>
               <RadioGroupItem
                 value="bon"
                 id="bon"
-                className={`${
-                  paymentMethodSelected === "bon"
-                    ? "text-[#7ABFFF]"
-                    : "text-[#000]"
-                }`}
+                className={`${paymentMethodSelected === "bon"
+                  ? "text-[#7ABFFF]"
+                  : "text-[#000]"
+                  }`}
               />
               <div>
                 <Label
                   htmlFor="bon"
-                  className={`text-[18px] ${
-                    paymentMethodSelected === "bon" ? "text-[#7ABFFF]" : ""
-                  }`}>
+                  className={`text-[18px] ${paymentMethodSelected === "bon" ? "text-[#7ABFFF]" : ""
+                    }`}>
                   Bon
                 </Label>
                 <div className="flex items-center gap-1">
@@ -704,7 +694,7 @@ function OrderPanel() {
               {/* Search modal starts here */}
               <DialogContent
                 aria-describedby="search"
-                className="sm:max-w-[1000px] h-[700px]">
+                className="sm:max-w-[1000px]">
                 <DialogHeader>
                   <DialogTitle>Pilih Produk</DialogTitle>
                   <DialogDescription>
@@ -721,7 +711,20 @@ function OrderPanel() {
                     className="flex w-full py-3 text-sm bg-transparent rounded-md outline-none h-11 placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
                   />
                 </div>
-                <ScrollArea className="h-[450px]">
+
+                {/* Header Row */}
+                <div className="sticky top-0 flex items-center justify-between p-2 font-bold bg-gray-100">
+                  <div className="w-[1%]">#</div>
+                  <div className="w-[40%]">Nama Produk</div>
+                  <div className="w-[15%]">Modal</div>
+                  <div className="w-[15%]">Pasaran</div>
+                  <div className="w-[5%]">Stok</div>
+                  <div className="w-[5%]">Rak</div>
+                  <div className="w-[5%]"></div>
+                </div>
+
+                {/* Items Row */}
+                <ScrollArea className="h-[350px]">
                   {items?.data?.data?.map((item, index) => {
                     const isDuplicate = customerTrx?.[
                       activeTabIndex
@@ -731,9 +734,8 @@ function OrderPanel() {
                       <div
                         key={item.barcode}
                         onClick={() => handleItemClick(item)}
-                        className={`flex items-center justify-between p-2 hover:bg-gray-200 cursor-pointer ${
-                          selectedItems.includes(item) ? "bg-gray-200" : ""
-                        }`}>
+                        className={`flex items-center justify-between p-2 hover:bg-gray-200 cursor-pointer ${selectedItems.includes(item) ? "bg-gray-200" : ""
+                          }`}>
                         <div className="w-[1%]">
                           <p>{index + 1}</p>
                         </div>
@@ -754,7 +756,7 @@ function OrderPanel() {
                           </p>
                         </div>
 
-                        <div className="w-[20%]">
+                        <div className="w-[15%]">
                           <p className="text-[16px] font-bold">
                             {item.product_code}
                           </p>
@@ -763,11 +765,23 @@ function OrderPanel() {
                           </p>
                         </div>
 
-                        <div className="w-[20%]">
-                          <p className="text-[16px] font-bold">{item.market}</p>
-                          <p className="text-[16px] font-normal">
-                            {formatDate(item.market_updated_at)}
+                        <div className="w-[15%]">
+                          <p className="text-[16px] font-bold">
+                            {item.product_code}
                           </p>
+                          <p className="text-[16px] font-normal">
+                            {formatDate(item.product_code_updated_at)}
+                          </p>
+                        </div>
+
+                        <div className="w-[5%]">
+                          <p className="text-[16px] font-bold">
+                            {item.item_stock ? item.item_stock : 0}
+                          </p>
+                        </div>
+
+                        <div className="w-[5%]">
+                          <p className="text-[16px] font-bold">{item.rak}</p>
                         </div>
 
                         <div className="w-[5%]">

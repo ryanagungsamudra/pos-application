@@ -7,6 +7,7 @@ import {
   Dispatch,
   SetStateAction,
 } from "react";
+import { throttle } from "lodash";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -94,11 +95,16 @@ export const useLocalStorageState = <T>(
 
   const [isHydrated, setIsHydrated] = useState(false);
 
+  // Throttle the localStorage write function
+  const throttledSetItem = throttle((key: string, value: T) => {
+    localStorage.setItem(key, JSON.stringify(value));
+  }, 2000); // Adjust the delay as necessary (2000 ms = 2 seconds)
+
   useEffect(() => {
     if (isHydrated) {
-      localStorage.setItem(key, JSON.stringify(state));
+      throttledSetItem(key, state);
     }
-  }, [key, state, isHydrated]);
+  }, [key, state, isHydrated, throttledSetItem]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {

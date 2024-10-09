@@ -25,7 +25,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         <RouterProvider router={router} />
         <LoadingScreen />
         <Toaster />
-        {/* <ReactQueryDevtools initialIsOpen={true} /> */}
+        <ReactQueryDevtools initialIsOpen={true} />
       </React.StrictMode>
     </AppProvider>
   </QueryClientProvider>
