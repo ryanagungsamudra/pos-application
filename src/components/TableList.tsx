@@ -6,8 +6,7 @@ import noDataAnimation from "@/assets/lottie/no-data.json";
 import { Item } from "@/provider/AppContext";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { InputNumeric } from "./ui/input-numeric";
-import { useEffect, useRef } from "react";
-// import { useAppContext } from "@/provider/useAppContext";
+import { useEffect, useRef, memo, useMemo, useCallback } from "react";
 
 const CustomTableHeader = ({
   customerPanel,
@@ -54,7 +53,7 @@ interface CustomTableRowProps {
   index: number;
   onDelete: (index: number) => void;
   onUpdate: (index: number, updatedProperties: Partial<Item>) => void;
-  inputRef: React.RefObject<HTMLInputElement>;
+  inputRef?: (instance: HTMLInputElement | null) => void;
 }
 const CustomTableRow = ({
   customerPanel,
@@ -68,17 +67,14 @@ const CustomTableRow = ({
   const bgColor = index % 2 === 0 ? "bg-[#DDEEFF]" : "bg-[#fff]";
 
   const handleQtyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newQty = parseInt(e.target.value, 10) || 0;
-    const newTotalUnitPrice = newQty * rowData.unit_price;
-    onUpdate(index, { qty: newQty, total_unit_price: newTotalUnitPrice });
+    const newQty = parseInt(e.target.value, 10) || 0; // Parse input value as integer
+    const newTotalUnitPrice = newQty * rowData.unit_price; // Calculate the new total price based on the unit price
+    onUpdate(index, { qty: newQty, total_unit_price: newTotalUnitPrice }); // Update the item
   };
 
   const handleUnitPriceChange = (newUnitPrice: number) => {
-    const newTotalUnitPrice = newUnitPrice * rowData.qty;
-    onUpdate(index, {
-      unit_price: newUnitPrice,
-      total_unit_price: newTotalUnitPrice,
-    });
+    const newTotalUnitPrice = newUnitPrice * rowData.qty; // Calculate new total price based on the quantity
+    onUpdate(index, { unit_price: newUnitPrice, total_unit_price: newTotalUnitPrice }); // Update the item
   };
 
   return (
@@ -125,7 +121,7 @@ const CustomTableRow = ({
         {!customerPanel ? (
           <input
             onChange={handleQtyChange}
-            value={rowData.qty ? String(rowData.qty) : 0}
+            value={rowData.qty != null ? String(rowData.qty) : '0'}
             type="text"
             className=" w-[30px] font-normal border-[0.4px] border-solid border-black text-[20px]"
           />
@@ -165,48 +161,32 @@ const CustomTableRow = ({
     </div>
   );
 };
+// Custom equality check function to control re-rendering
+const areEqual = (
+  prevProps: CustomTableRowProps,
+  nextProps: CustomTableRowProps
+) => {
+  return (
+    prevProps.rowData.qty === nextProps.rowData.qty &&
+    prevProps.rowData.unit_price === nextProps.rowData.unit_price &&
+    prevProps.rowData.total_unit_price === nextProps.rowData.total_unit_price &&
+    prevProps.index === nextProps.index &&
+    prevProps.customerPanel === nextProps.customerPanel &&
+    JSON.stringify(prevProps.columns) === JSON.stringify(nextProps.columns)
+  );
+};
+const MemoizedCustomTableRow = memo(CustomTableRow, areEqual);
 
 function TableList({ customerPanel = false }: { customerPanel?: boolean }) {
-  const { tabs, customerTrx, setCustomerTrx, enterCount, setEnterCount } =
-    useAppContext();
+  const { tabs, customerTrx, setCustomerTrx, enterCount, setEnterCount } = useAppContext();
 
-  // Find the active tab
-  const activeTab = tabs.find((tab) => tab.active);
+  // Active tab and index
+  const activeTab = useMemo(() => tabs.find((tab) => tab.active), [tabs]);
+  const activeTabIndex = useMemo(() => (activeTab ? tabs.indexOf(activeTab) : 0), [activeTab, tabs]);
+  const items = useMemo(() => customerTrx[activeTabIndex]?.items || [], [customerTrx, activeTabIndex]);
 
-  // Ensure there is an active tab and get its index
-  const activeTabIndex = activeTab ? tabs.indexOf(activeTab) : 0;
-
-  // Use the items from the customer transaction corresponding to the active tab
-  const items = customerTrx[activeTabIndex]?.items || [];
-
-  // Function to update items
-  const updateItems = (newItems: Item[]) => {
-    const newCustomerTrx = [...customerTrx];
-    newCustomerTrx[activeTabIndex] = {
-      ...newCustomerTrx[activeTabIndex],
-      items: newItems,
-    };
-    setCustomerTrx(newCustomerTrx);
-  };
-
-  // Function to modify an item
-  const modifyItem = (index: number, updatedProperties: Partial<Item>) => {
-    const updatedItems = items.map((item, i) =>
-      i === index ? { ...item, ...updatedProperties } : item
-    );
-    updateItems(updatedItems);
-  };
-
-  const handleDelete = (index: number) => {
-    const newData = items.filter((_, i) => i !== index);
-
-    // Update the customerTrx state to reflect the deletion
-    const newCustomerTrx = [...customerTrx];
-    newCustomerTrx[activeTabIndex].items = newData;
-    setCustomerTrx(newCustomerTrx);
-  };
-
-  const COLUMN_WIDTHS = {
+  // Column widths memoized
+  const COLUMN_WIDTHS = useMemo(() => ({
     number: !customerPanel ? "w-[2%]" : "w-[5%]",
     name: !customerPanel ? "w-[43%]" : "w-[60%]",
     modal: !customerPanel ? "w-[12%]" : "w-[0%]",
@@ -214,79 +194,94 @@ function TableList({ customerPanel = false }: { customerPanel?: boolean }) {
     pcs: !customerPanel ? "w-[5%]" : "w-[15%]",
     unitPrice: !customerPanel ? "w-[12%]" : "w-[0%]",
     totalPrice: !customerPanel ? "w-[10%]" : "w-[15%]",
-  };
+  }), [customerPanel]);
 
-  // Handle enter shortcut
-  const inputRefs = useRef<Array<HTMLInputElement | null>>([]); // Refs to store input fields
+  const setInputRef = useCallback(
+    (index: number, ref: HTMLInputElement | null) => {
+      inputRefs.current[index] = ref;
+    },
+    [] // Dependencies, empty because you don't need to recalculate this function on updates.
+  );
 
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Update customer transaction
+  const updateItems = useCallback((newItems: Item[]) => {
+    setCustomerTrx((prev) => {
+      const newCustomerTrx = [...prev];
+      newCustomerTrx[activeTabIndex] = {
+        ...newCustomerTrx[activeTabIndex],
+        items: [...newItems], // Ensure immutability here
+      };
+      return newCustomerTrx;
+    });
+
+  }, [setCustomerTrx, activeTabIndex]);
+
+  const modifyItem = useCallback((index: number, updatedProperties: Partial<Item>) => {
+    const updatedItems = items.map((item, i) => i === index ? { ...item, ...updatedProperties } : item);
+    updateItems(updatedItems);
+  }, [items, updateItems]);
+
+  const handleDelete = useCallback((index: number) => {
+    updateItems(items.filter((_, i) => i !== index));
+  }, [items, updateItems]);
+
+  // Handle enter key for unit price
   useEffect(() => {
-    const hasZeroUnitPrice = items.some(
-      (item) => item.unit_price === 0 || !item.unit_price
-    );
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Enter") {
-        if (hasZeroUnitPrice) {
-          // Check if the current `enterCount` index has a valid ref to focus
-          if (inputRefs.current[enterCount]) {
-            inputRefs.current[enterCount]?.focus();
-            inputRefs.current[enterCount]?.select(); // Automatically select the value
-          }
+    const hasZeroUnitPrice = items.some((item) => item.unit_price === 0 || !item.unit_price);
 
-          // Increment the `enterCount` and reset if it exceeds the number of items
-          setEnterCount((prevCount) => (prevCount + 1) % items.length);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Enter" && hasZeroUnitPrice) {
+        if (inputRefs.current[enterCount]) {
+          inputRefs.current[enterCount]?.focus();
+          inputRefs.current[enterCount]?.select();
         }
+        setEnterCount((prevCount) => (prevCount + 1) % items.length);
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
 
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [enterCount, setEnterCount, items.length, items]);
+    // Cleanup function to remove the event listener
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [enterCount, setEnterCount, items]);
+
 
   return (
     <div className="flex flex-col border-b-4">
-      <CustomTableHeader
-        customerPanel={customerPanel}
-        columns={COLUMN_WIDTHS}
-      />
-      <ScrollArea className="h-[410px] w-full">
-        {items.length === 0 && (
-          <div className="flex flex-wrap items-center justify-center w-full h-[350px]">
-            <div className="w-full mt-[4rem]">
-              <Lottie
-                style={{ width: 150, margin: "auto" }}
-                animationData={noDataAnimation}
-                loop={false}
-                // autoPlay
-              />
-            </div>
-            <div className="-mt-[6rem]">
-              <p className="text-[16px] text-center text-gray-600">
-                Silahkan tambahkan item dengan menekan tombol <br />
-                <span className="font-bold">Barcode</span> atau{" "}
-                <span className="font-bold">Cari Item</span>
-              </p>
-            </div>
+      <CustomTableHeader customerPanel={customerPanel} columns={COLUMN_WIDTHS} />
+      {items.length === 0 ? (
+        <div className="flex flex-wrap items-center justify-center w-full h-[350px]">
+          <div className="w-full mt-[4rem]">
+            <Lottie style={{ width: 150, margin: "auto" }} animationData={noDataAnimation} loop={false} />
           </div>
-        )}
-        {items.map((row, index) => (
-          <CustomTableRow
-            columns={COLUMN_WIDTHS}
-            customerPanel={customerPanel}
-            key={index}
-            rowData={row}
-            index={index}
-            onDelete={handleDelete}
-            onUpdate={modifyItem}
-            inputRef={(ref) => (inputRefs.current[index] = ref)}
-          />
-        ))}
-        <ScrollBar orientation="vertical" />
-      </ScrollArea>
+          <div className="-mt-[6rem]">
+            <p className="text-[16px] text-center text-gray-600">
+              Silahkan tambahkan item dengan menekan tombol <br />
+              <span className="font-bold">Barcode</span> atau <span className="font-bold">Cari Item</span>
+            </p>
+          </div>
+        </div>
+      ) : (
+        <ScrollArea className="h-[400px] w-full">
+          {items.map((row, index) => (
+            <CustomTableRow
+              columns={COLUMN_WIDTHS}
+              customerPanel={customerPanel}
+              key={index}
+              rowData={row}
+              index={index}
+              onDelete={handleDelete}
+              onUpdate={modifyItem}
+              inputRef={(ref) => setInputRef(index, ref)}
+            />
+          ))}
+          <ScrollBar orientation="vertical" />
+        </ScrollArea>
+      )}
     </div>
   );
 }
 
-export default TableList;
+export default memo(TableList);

@@ -32,7 +32,7 @@ const handleNegativeValue = (rawText, numberText) => {
 
 // Using forwardRef to receive inputRef from parent
 export const InputNumeric = forwardRef(
-  ({ value = 0, onChange, className, allowNegative = true, ...props }, ref) => {
+  ({ value = 0, onChange, className, allowNegative = false, ...props }, ref) => {
     const hiddenInputRef = useRef();
 
     const handleChange = (e) => {
@@ -65,7 +65,7 @@ export const InputNumeric = forwardRef(
           ref={hiddenInputRef}
           hidden
           value={value}
-          onChange={() => {}} // No operation for hidden input
+          onChange={() => { }} // No operation for hidden input
         />
       </div>
     );
