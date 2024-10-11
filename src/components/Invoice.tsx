@@ -12,13 +12,27 @@ const Invoice = React.forwardRef((_, ref) => {
   const activeTabIndex = activeTab ? tabs.indexOf(activeTab) : 0;
 
   // Use the items from the customer transaction corresponding to the active tab
+  const trxData = customerTrx[activeTabIndex] || [];
   const items = customerTrx[activeTabIndex]?.items || [];
   const paymentMethod = customerTrx[activeTabIndex]?.payment_method || "N/A";
   const total = customerTrx[activeTabIndex]?.total || 0;
   const uang = customerTrx[activeTabIndex]?.cash || 0;
   const kembalian = customerTrx[activeTabIndex]?.money_change || 0;
 
-  const currentDate = new Date().toLocaleDateString();
+  const currentDate = new Date();
+
+  // Extract the date components
+  const day = String(currentDate.getDate()).padStart(2, '0'); // Pad with zero if needed
+  const month = String(currentDate.getMonth() + 1).padStart(2, '0'); // Months are 0-based, so add 1
+  const year = String(currentDate.getFullYear()).slice(-2); // Get last 2 digits of the year
+
+  // Extract the time components
+  const hours = String(currentDate.getHours()).padStart(2, '0');
+  const minutes = String(currentDate.getMinutes()).padStart(2, '0');
+
+  // Format the date and time
+  const formattedDate = `${day}.${month}.${year}-${hours}:${minutes}`;
+
 
   React.useImperativeHandle(ref, () => ({
     handlePrint: () => {
@@ -52,39 +66,51 @@ const Invoice = React.forwardRef((_, ref) => {
       ref={billRef}
       className="max-w-[58mm] mx-auto overflow-hidden bg-white rounded-lg shadow-md">
       <div className="p-4">
-        <div className="flex items-center justify-between w-full">
+        <div className="flex items-center justify-center w-full">
           <img
             src={Logo}
             alt="Logo"
-            className="w-[50px] h-[30px] cursor-pointer"
+            className="w-[30] h-[30px] cursor-pointer"
           />
-          <p className="text-xs text-center text-gray-600">{currentDate}</p>
         </div>
 
         <div>
-          <p className="text-[8px] text-center mt-2">
+          <p className="text-[7px] text-center mt-2">
             Jl. Magelang No.6,3, Mlati Dukuh, Sinduadi, Kec. Mlati, Kabupaten
             Sleman, Daerah Istimewa Yogyakarta 55284
           </p>
+
+          <p className="text-[7px] text-center mt-1 font-semibold">
+            +62 821-2222-3333</p>
         </div>
 
         <div className="mt-0">
-          <h2 className="font-semibold text-center text-md">
+          <div className="text-center font-extralight text-md">
             -------------------------
-          </h2>
-          <div id="itemList" className="">
+          </div>
+
+          <div className="flex items-center justify-between w-full px-[3px] -mt-2">
+            <p className="text-[6px]">{formattedDate}</p>
+            <p className="text-[6px]">{trxData?.customer}</p>
+          </div>
+
+          <div className="my-0 -mt-[10px] text-center font-extralight text-md h-[10px]">
+            -------------------------
+          </div>
+          <div id="itemList" className="px-1 my-2">
             {items.map((item, index) => (
-              <div key={index} className="flex justify-between py-1 text-xs">
-                <div className="w-[45%]">
-                  <span className="text-[10px]">{item.name}</span>
+              <div key={index} className="flex items-center justify-between text-xs h-[25px]">
+                <div className="w-[50%] flex flex-wrap items-center">
+                  <span className="text-[7px] w-full font-semibold">{item.name}</span>
+                  <span className="text-[7px] w-full -mt-1">({item.barcode})</span>
                 </div>
-                <div className="w-[35%]">
-                  <span className="text-[10px]">
-                    {item.qty} x {item.unit_price}
+                <div className="">
+                  <span className="text-[7px] flex">
+                    x {item.qty}
                   </span>
                 </div>
-                <div className="w-[20%]">
-                  <span className="text-[10px]">
+                <div className="">
+                  <span className="text-[7px]">
                     {formatNumber(item.total_unit_price)}
                   </span>
                 </div>
@@ -93,34 +119,37 @@ const Invoice = React.forwardRef((_, ref) => {
           </div>
         </div>
 
-        <h2 className="font-semibold text-center text-md">
+        <h2 className="text-center font-extralight text-md h-[15px] -mt-4">
           -------------------------
         </h2>
 
-        <div className="flex justify-between -my-[5px] text-xs font-bold px-1">
-          <h2 className="font-semibold text-[10px]">Metode Pembayaran :</h2>
-          <p className="text-gray-600 text-[10px] uppercase">{paymentMethod}</p>
-        </div>
-
-        <h2 className="font-semibold text-center text-md">
-          -------------------------
-        </h2>
-
-        <div className="flex justify-between mt-0 text-xs font-bold">
-          <span className="text-[10px]">Total</span>
-          <span className="text-[10px]">{formatNumber(total)}</span>
+        <div className="flex justify-between mt-2 text-xs font-bold">
+          <span className="text-[8px]">Total</span>
+          <span className="text-[8px]">{formatNumber(total)}</span>
         </div>
 
         <div className="flex justify-between mt-0 text-xs font-bold">
-          <span className="text-[10px]">Tunai</span>
-          <span className="text-[10px]">{formatNumber(uang)}</span>
+          <span className="text-[8px]">Cash / Transfer / Bon (Hutang)</span>
+          <span className="text-[8px]">{formatNumber(uang)}</span>
         </div>
 
         <div className="flex justify-between mt-0 text-xs font-bold">
-          <span className="text-[10px]">Kembali</span>
-          <span className="text-[10px]">{formatNumber(kembalian)}</span>
+          <span className="text-[8px]">Kembali</span>
+          <span className="text-[8px]">{formatNumber(kembalian)}</span>
         </div>
+
+        {
+          trxData?.description && (
+            <div className="flex justify-start gap-1 mt-0 text-xs font-bold">
+              <span className="text-[8px]">Keterangan</span>
+              <span className="text-[8px] font-normal">: {trxData.description}</span>
+            </div>
+          )
+        }
+
+        <h1 className="mt-2 text-center font-semibold italic underline text-[8px]">Terimakasih</h1>
       </div>
+
     </div>
   );
 });
