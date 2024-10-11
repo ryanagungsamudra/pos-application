@@ -697,17 +697,18 @@ function OrderPanel() {
               {/* Search modal starts here */}
               <DialogContent
                 aria-describedby="search"
-                className="sm:max-w-[1000px]">
+                className="sm:max-w-[1000px]"
+              >
                 <DialogHeader>
                   <DialogTitle>Pilih Produk</DialogTitle>
                   <DialogDescription>
-                    Cari item yang anda inginkan. Klik tombol di bawah untuk
-                    mencari
+                    Cari item yang anda inginkan. Klik tombol di bawah untuk mencari
                   </DialogDescription>
                 </DialogHeader>
                 <div
                   className="flex items-center px-3 border-[0.2px] border-solid border-black rounded-md"
-                  cmdk-input-wrapper="">
+                  cmdk-input-wrapper=""
+                >
                   <Search className="w-4 h-4 mr-2 opacity-50 shrink-0" />
                   <input
                     placeholder="Cari item..."
@@ -733,12 +734,16 @@ function OrderPanel() {
                       activeTabIndex
                     ]?.items?.some((i) => i.barcode === item.barcode);
 
+                    // Prevent adding item if item_stock is null
+                    const isStockUnavailable = item.item_stock === null;
+
                     return (
                       <div
                         key={item.barcode}
-                        onClick={() => handleItemClick(item)}
+                        onClick={() => !isStockUnavailable && handleItemClick(item)}
                         className={`flex items-center justify-between p-2 hover:bg-gray-200 cursor-pointer ${selectedItems.includes(item) ? "bg-gray-200" : ""
-                          }`}>
+                          } ${isDuplicate || isStockUnavailable ? "bg-gray-100 cursor-not-allowed" : ""}`} // Disable click if stock is null
+                      >
                         <div className="w-[1%]">
                           <p>{index + 1}</p>
                         </div>
@@ -753,6 +758,15 @@ function OrderPanel() {
                                 (Sudah dipilih)
                               </span>
                             )}
+
+                            {
+                              isStockUnavailable && (
+                                <span className="text-[#FF0000] text-sm font-normal">
+                                  {" "}
+                                  (Stok tidak tersedia)
+                                </span>
+                              )
+                            }
                           </p>
                           <p className="text-[16px] font-normal">
                             {item.brand} | {item.guarantee} | {item.type}
@@ -789,10 +803,12 @@ function OrderPanel() {
 
                         <div className="w-[5%]">
                           <Checkbox
-                            disabled={isDuplicate}
+                            disabled={isDuplicate || isStockUnavailable}
                             checked={selectedItems.includes(item)}
-                            onChange={() => handleItemClick(item)}
-                            className="mr-4 cursor-pointer"
+                            onChange={() =>
+                              !isStockUnavailable && handleItemClick(item)
+                            }
+                            className={`mr-4 cursor-pointer`, isDuplicate || isStockUnavailable ? "hidden" : ""}
                           />
                         </div>
                       </div>
@@ -805,13 +821,15 @@ function OrderPanel() {
                     type="button"
                     variant={"outline"}
                     onClick={() => setSelectedItems([])}
-                    disabled={selectedItems.length > 0 ? false : true}>
+                    disabled={selectedItems.length > 0 ? false : true}
+                  >
                     Batalkan Pilihan
                   </Button>
                   <Button
                     type="button"
                     onClick={handleApplyItems}
-                    disabled={selectedItems.length > 0 ? false : true}>
+                    disabled={selectedItems.length > 0 ? false : true}
+                  >
                     Simpan & Terapkan
                   </Button>
                 </DialogFooter>
@@ -823,17 +841,15 @@ function OrderPanel() {
           <div>
             <div
               onClick={handleDeleteAllItems}
-              className="w-[60px] h-[60px] flex items-center justify-center bg-[#D9D9D9] rounded-full cursor-pointer">
-              <img
-                src={IconTrash}
-                alt="Icon Trash"
-                className="w-[30px] h-[30px]"
-              />
+              className="w-[60px] h-[60px] flex items-center justify-center bg-[#D9D9D9] rounded-full cursor-pointer"
+            >
+              <img src={IconTrash} alt="Icon Trash" className="w-[30px] h-[30px]" />
             </div>
             <p className="text-[16px] font-medium">Delete all</p>
           </div>
         </div>
       </div>
+
 
       {/* Checkout */}
       <div className="w-full">
