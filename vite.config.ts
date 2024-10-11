@@ -5,27 +5,27 @@ import { VitePWA, VitePWAOptions } from "vite-plugin-pwa";
 
 const manifestForPlugin: Partial<VitePWAOptions> = {
   registerType: "prompt",
-  includeAssets: ["img-192.png", "img-384.png", "img-512.png"],
+  includeAssets: ["vite.svg"],
   manifest: {
-    name: "React-vite-app",
-    short_name: "react-vite-app",
-    description: "I am a simple vite app",
+    name: "RAKA POS APP",
+    short_name: "RAKA POS",
+    description: "A POS app for RAKA",
     icons: [
       {
-        src: "/img-192.png",
+        src: "/vite.svg", // Path to your new icon for 192x192
         sizes: "192x192",
-        type: "image/png",
+        type: "image/svg+xml", // Change the type to svg
         purpose: "any maskable",
       },
       {
-        src: "/img-384.png",
+        src: "/vite.svg", // Path to your new icon for 384x384
         sizes: "384x384",
-        type: "image/png",
+        type: "image/svg+xml", // Change the type to svg
       },
       {
-        src: "/img-512.png",
+        src: "/vite.svg", // Path to your new icon for 512x512
         sizes: "512x512",
-        type: "image/png",
+        type: "image/svg+xml", // Change the type to svg
       },
     ],
     theme_color: "#181818",
