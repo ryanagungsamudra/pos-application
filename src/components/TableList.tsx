@@ -254,7 +254,7 @@ function TableList({ customerPanel = false }: { customerPanel?: boolean }) {
     <div className="flex flex-col border-b-4">
       <CustomTableHeader customerPanel={customerPanel} columns={COLUMN_WIDTHS} />
       {items.length === 0 ? (
-        <div className="flex flex-wrap items-center justify-center w-full h-[350px]">
+        <div className="flex flex-wrap items-center justify-center w-full h-[400px]">
           <div className="w-full mt-[4rem]">
             <Lottie style={{ width: 150, margin: "auto" }} animationData={noDataAnimation} loop={false} />
           </div>

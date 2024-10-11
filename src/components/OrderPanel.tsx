@@ -54,6 +54,8 @@ function OrderPanel() {
     tabs,
     customerTrx,
     setCustomerTrx,
+    showLoading,
+    hideLoading,
     isBarcodeScannerActive,
     enterCount,
   } = useAppContext();
@@ -105,6 +107,8 @@ function OrderPanel() {
   };
 
   const handleSubmit = useCallback(async () => {
+    showLoading();
+
     if (customerTrx[activeTabIndex]?.money_change < 0) {
       return toast({
         variant: "destructive",
@@ -134,6 +138,7 @@ function OrderPanel() {
     await postTransaction(body)
       .then((res) => {
         handlePrint();
+        setOpen({ ...open, dialog: false });
         console.log("res", res);
         toast({
           variant: "success",
@@ -141,9 +146,12 @@ function OrderPanel() {
           description: "Silahkan lakukan pembayaran",
           duration: 2500,
         });
+
+        hideLoading();
         navigate("/customer");
       })
       .catch((err) => {
+        hideLoading();
         console.log("err", err);
         toast({
           variant: "destructive",
@@ -569,6 +577,7 @@ function OrderPanel() {
           </div>
           <div className="w-[418px] rounded-bl-[10px] rounded-br-[10px] drop-shadow-lg bg-white p-[12px]">
             <textarea
+              maxLength={50}
               className=" w-full h-full font-normal border-[0.4px] border-solid border-black text-[20px] rounded-[5px]"
               onChange={handleDescriptionChange}
               value={
@@ -741,8 +750,8 @@ function OrderPanel() {
                       <div
                         key={item.barcode}
                         onClick={() => !isStockUnavailable && handleItemClick(item)}
-                        className={`flex items-center justify-between p-2 hover:bg-gray-200 cursor-pointer ${selectedItems.includes(item) ? "bg-gray-200" : ""
-                          } ${isDuplicate || isStockUnavailable ? "bg-gray-100 cursor-not-allowed" : ""}`} // Disable click if stock is null
+                        className={`flex items-center justify-between p-2 hover:bg-gray-200 ${selectedItems.includes(item) ? "bg-gray-200" : ""
+                          } ${isDuplicate || isStockUnavailable ? "bg-gray-100 cursor-not-allowed" : "cursor-pointer"}`} // Disable click if stock is null
                       >
                         <div className="w-[1%]">
                           <p>{index + 1}</p>
