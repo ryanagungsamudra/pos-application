@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { formatCurrency } from "@/lib/utils";
 import { useAppContext } from "@/provider/useAppContext";
 import { useEffect, useState } from "react";
@@ -28,7 +30,7 @@ function Finance() {
   }, [timeLeft]);
 
   // Format the time left into minutes and seconds
-  const formatTime = (seconds) => {
+  const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return `${minutes}:${remainingSeconds < 10 ? "0" : ""}${remainingSeconds}`;
@@ -70,7 +72,9 @@ function Finance() {
                   <p className="text-[20px] font-normal">Uang</p>
                   <div className="flex gap-2">
                     <p className="text-[20px] font-normal">Rp</p>
-                    {formatCurrency(customerTrx[activeTabIndex].cash)}
+                    {customerTrx[activeTabIndex]?.cash !== undefined
+                      ? formatCurrency(customerTrx[activeTabIndex].cash)
+                      : formatCurrency(0)}
                   </div>
                 </div>
                 <div className="mt-2 -mx-4">

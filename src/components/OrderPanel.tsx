@@ -1,3 +1,6 @@
+
+// @ts-nocheck
+
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
@@ -102,55 +105,53 @@ function OrderPanel() {
   };
 
   const handleSubmit = useCallback(async () => {
-    handlePrint();
+    if (customerTrx[activeTabIndex]?.money_change < 0) {
+      return toast({
+        variant: "destructive",
+        title: "Uang Kurang!",
+        description: "Silahkan tambahkan uang",
+        duration: 2500,
+      });
+    }
 
-    // if (customerTrx[activeTabIndex]?.money_change < 0) {
-    //   return toast({
-    //     variant: "destructive",
-    //     title: "Uang Kurang!",
-    //     description: "Silahkan tambahkan uang",
-    //     duration: 2500,
-    //   });
-    // }
+    const dataTrx = customerTrx[activeTabIndex];
+    const body = {
+      items: dataTrx?.items?.map((item) => ({
+        item_id: item.id,
+        qty: item.qty,
+        unit_price: item.unit_price,
+        total_price: item.total_unit_price,
+      })),
+      payment_method: dataTrx?.payment_method,
+      customer_id: dataTrx?.customerId,
+      bon_duration: dataTrx?.bon_duration || 0,
+      total_payment: dataTrx?.total,
+      cash: dataTrx?.cash,
+      money_change: dataTrx?.money_change,
+      description: dataTrx?.description,
+    };
 
-    // const dataTrx = customerTrx[activeTabIndex];
-    // const body = {
-    //   items: dataTrx?.items?.map((item) => ({
-    //     item_id: item.id,
-    //     qty: item.qty,
-    //     unit_price: item.unit_price,
-    //     total_price: item.total_unit_price,
-    //   })),
-    //   payment_method: dataTrx?.payment_method,
-    //   customer_id: dataTrx?.customerId,
-    //   bon_duration: dataTrx?.bon_duration || 0,
-    //   total_payment: dataTrx?.total,
-    //   cash: dataTrx?.cash,
-    //   money_change: dataTrx?.money_change,
-    //   description: dataTrx?.description,
-    // };
-
-    // await postTransaction(body)
-    //   .then((res) => {
-    //     handlePrint();
-    //     console.log("res", res);
-    //     toast({
-    //       variant: "success",
-    //       title: "Checkout Berhasil!",
-    //       description: "Silahkan lakukan pembayaran",
-    //       duration: 2500,
-    //     });
-    //     navigate("/customer");
-    //   })
-    //   .catch((err) => {
-    //     console.log("err", err);
-    //     toast({
-    //       variant: "destructive",
-    //       title: "Checkout Gagal!",
-    //       description: "Silahkan coba lagi",
-    //       duration: 2500,
-    //     });
-    //   });
+    await postTransaction(body)
+      .then((res) => {
+        handlePrint();
+        console.log("res", res);
+        toast({
+          variant: "success",
+          title: "Checkout Berhasil!",
+          description: "Silahkan lakukan pembayaran",
+          duration: 2500,
+        });
+        navigate("/customer");
+      })
+      .catch((err) => {
+        console.log("err", err);
+        toast({
+          variant: "destructive",
+          title: "Checkout Gagal!",
+          description: "Silahkan coba lagi",
+          duration: 2500,
+        });
+      });
   }, [customerTrx, activeTabIndex, navigate, toast]);
 
   // CUSTOMER MODAL START

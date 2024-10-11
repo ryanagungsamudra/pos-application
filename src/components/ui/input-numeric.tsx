@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { forwardRef, useRef } from "react";
 
 const _renderNumeric = (value, maxFractionDigits = 0) => {

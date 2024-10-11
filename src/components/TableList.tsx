@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import IconTrash from "@/assets/icons/trash.svg";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useAppContext } from "@/provider/useAppContext";

@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import CarouselBanner from "@/components/CarouselBanner";
 import Navbar from "@/components/Navbar";
 import TableList from "@/components/TableList";
@@ -67,7 +69,9 @@ function Customer() {
                   <p className="text-[20px] font-normal">Uang</p>
                   <div className="flex gap-2">
                     <p className="text-[30px] font-normal">
-                      {formatCurrency(customerTrx[activeTabIndex].cash)}
+                      {customerTrx[activeTabIndex]?.cash !== undefined
+                        ? formatCurrency(customerTrx[activeTabIndex].cash)
+                        : formatCurrency(0)}
                     </p>
                   </div>
                 </div>

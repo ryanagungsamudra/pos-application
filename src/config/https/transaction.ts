@@ -3,7 +3,7 @@ import Cookies from "js-cookie";
 const url = import.meta.env.VITE_APP_HOST;
 
 // transaction
-export const postTransaction = async (body) => {
+export const postTransaction = async (body: object) => {
   const token = Cookies.get("token");
 
   if (!token) {

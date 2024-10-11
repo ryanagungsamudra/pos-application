@@ -136,9 +136,8 @@ const BarcodeScanner: React.FC = () => {
           />
           <div className="absolute flex items-center justify-center w-4 h-3 transform -translate-x-1/2 -translate-y-1/2 bg-white top-1/2 left-1/2">
             <p
-              className={`text-[8px] ${
-                isBarcodeScannerActive ? "text-[#038B0A]" : "text-[#B30A28]"
-              }  font-bold`}>
+              className={`text-[8px] ${isBarcodeScannerActive ? "text-[#038B0A]" : "text-[#B30A28]"
+                }  font-bold`}>
               {isBarcodeScannerActive ? "ON" : "OFF"}
             </p>
           </div>

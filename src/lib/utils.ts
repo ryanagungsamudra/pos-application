@@ -1,44 +1,11 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import {
-  ChangeEvent,
-  useState,
-  useEffect,
-  Dispatch,
-  SetStateAction,
-} from "react";
+import { ChangeEvent } from "react";
 import { throttle } from "lodash";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
-
-/**
- * Formats a number with commas as thousands separators.
- * Hides a single zero.
- *
- * @param {number} number - The number to format.
- * @returns {string} - The formatted number or an empty string if the number is zero.
- */
-
-// interface debounceProps {
-//   func: (...args: any) => void;
-//   delay: number;
-// }
-
-// export const debounce = ({ func, delay }: debounceProps) => {
-//   let timeoutId;
-
-//   return function debounced(...args) {
-//     const context = this;
-
-//     clearTimeout(timeoutId);
-
-//     timeoutId = setTimeout(() => {
-//       func.apply(context, args);
-//     }, delay);
-//   };
-// };
 
 export const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("id-ID", {
@@ -78,7 +45,6 @@ export const useFormattedNumber = (
 };
 
 import { useState, useEffect, Dispatch, SetStateAction } from "react";
-import isEqual from "lodash.isequal";
 
 export const useLocalStorageState = <T>(
   key: string,
@@ -100,6 +66,11 @@ export const useLocalStorageState = <T>(
     localStorage.setItem(key, JSON.stringify(value));
   }, 2000); // Adjust the delay as necessary (2000 ms = 2 seconds)
 
+  // Helper function for deep comparison without lodash.isEqual
+  const deepEqual = <U>(a: U, b: U): boolean => {
+    return JSON.stringify(a) === JSON.stringify(b);
+  };
+
   useEffect(() => {
     if (isHydrated) {
       throttledSetItem(key, state);
@@ -109,7 +80,7 @@ export const useLocalStorageState = <T>(
   useEffect(() => {
     if (typeof window !== "undefined") {
       const storedValue = localStorage.getItem(key);
-      if (storedValue !== null && !isEqual(state, JSON.parse(storedValue))) {
+      if (storedValue !== null && !deepEqual(state, JSON.parse(storedValue))) {
         setState(JSON.parse(storedValue));
       } else if (storedValue === null) {
         setState(initialValue);
@@ -126,11 +97,6 @@ export const useLocalStorageState = <T>(
   };
 
   return [state, setState, removeItem];
-};
-
-// Helper function to compare objects deeply
-const isEqual = (a: any, b: any) => {
-  return JSON.stringify(a) === JSON.stringify(b);
 };
 
 export const formatDate = (isoString: string) => {

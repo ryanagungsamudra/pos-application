@@ -4,7 +4,6 @@ import TableList from "@/components/TableList";
 import OrderPanel from "@/components/OrderPanel";
 import { useEffect } from "react";
 import { useAppContext } from "@/provider/useAppContext";
-import Invoice from "@/components/Invoice";
 
 function Cashier() {
   const { enterCount, setEnterCount } = useAppContext();

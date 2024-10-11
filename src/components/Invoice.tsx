@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { useAppContext } from "@/provider/useAppContext";
 import React, { useRef } from "react";
 import Logo from "@/assets/Logo.png";

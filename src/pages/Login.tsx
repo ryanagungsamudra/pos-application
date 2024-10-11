@@ -87,7 +87,7 @@ const Login: React.FC = () => {
         }, 3000);
       }
     },
-    [isValidEmail, loginMutation, email, password]
+    [email, isValidEmail, loginMutation, password, showLoading, hideLoading]
   );
 
   return (
