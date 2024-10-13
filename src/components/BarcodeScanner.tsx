@@ -58,7 +58,7 @@ const BarcodeScanner: React.FC = () => {
   );
 
   // Use the debounce hook
-  const debouncedBarcode = useDebounce(barcode, 300); // Adjust delay as needed
+  const debouncedBarcode = useDebounce(barcode, 150); // Adjust delay as needed
 
   // Effect to handle debounced barcode
   useEffect(() => {

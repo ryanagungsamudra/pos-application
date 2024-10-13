@@ -864,7 +864,7 @@ function OrderPanel() {
                       return (
                         <div
                           key={itemKey}
-                          onClick={() => handleItemClick(item)}
+                          onClick={() => !isStockUnavailable && handleItemClick(item)}
                           className={`flex items-center justify-between p-2 hover:bg-gray-200 ${selectedItems.includes(item) ? "bg-gray-200" : ""
                             } ${isDuplicate || isStockUnavailable ? "bg-gray-100 cursor-not-allowed" : "cursor-pointer"}`}
                         >
