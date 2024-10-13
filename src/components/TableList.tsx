@@ -118,9 +118,9 @@ const CustomTableRow = ({
           </div>
           <div className={`${columns.market} p-2`}>
             <div className="flex flex-wrap">
-              <p className="font-bold text-[20px]">{rowData.market}</p>
+              <p className="font-bold text-[20px]">{rowData.market || ''}</p>
               <p className="text-[#000] w-full text-[20px]">
-                {formatDate(rowData.market_updated_at)}
+                {rowData.market_updated_at ? formatDate(rowData.market_updated_at) : ''}
               </p>
             </div>
           </div>

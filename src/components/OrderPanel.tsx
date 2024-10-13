@@ -788,19 +788,19 @@ function OrderPanel() {
 
                         <div className="w-[15%]">
                           <p className="text-[16px] font-bold">
-                            {item.product_code}
+                            {item.product_code ? item.product_code : ""}
                           </p>
                           <p className="text-[16px] font-normal">
-                            {formatDate(item.product_code_updated_at)}
+                            {item.product_code_updated_at ? formatDate(item.product_code_updated_at) : ""}
                           </p>
                         </div>
 
                         <div className="w-[15%]">
                           <p className="text-[16px] font-bold">
-                            {item.product_code}
+                            {item.market ? item.market : ""}
                           </p>
                           <p className="text-[16px] font-normal">
-                            {formatDate(item.product_code_updated_at)}
+                            {item.market_updated_at ? formatDate(item.market_updated_at) : ""}
                           </p>
                         </div>
 
