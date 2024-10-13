@@ -53,8 +53,9 @@ export const InputNumeric = forwardRef(
       <div>
         {/* Input to show formatted value */}
         <input
+          type="text"
           className={`${className}`}
-          value={_renderNumeric(value)}
+          value={_renderNumeric(value) || 0}
           onChange={handleChange}
           onClick={() => hiddenInputRef?.current?.click()}
           onFocus={() => hiddenInputRef?.current?.focus()}
@@ -64,9 +65,10 @@ export const InputNumeric = forwardRef(
 
         {/* Hidden input to store the raw numeric value */}
         <input
+          type="hidden"
           ref={hiddenInputRef}
           hidden
-          value={value}
+          value={value || 0}
           onChange={() => { }} // No operation for hidden input
         />
       </div>

@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import IconSearch from "@/assets/icons/search.svg";
 import IconTrash from "@/assets/icons/trash-white.svg";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, useDebounce } from "@/lib/utils";
 
 import {
   Dialog,
@@ -30,7 +30,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getItems } from "@/config/https/item";
 import { useAppContext } from "@/provider/useAppContext";
 import { Checkbox } from "./ui/checkbox";
-import { getCustomers } from "@/config/https/customer";
+import { getCustomers, postCustomer } from "@/config/https/customer";
 import { Input } from "./ui/input";
 import { Item } from "@/provider/AppContext";
 import { InputNumeric } from "./ui/input-numeric";
@@ -40,12 +40,12 @@ import Invoice from "./Invoice";
 function OrderPanel() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { data: items } = useQuery({
+  const { data: items, refetch: refetchItems } = useQuery({
     queryKey: ["items"],
     queryFn: getItems,
   });
 
-  const { data: customers } = useQuery({
+  const { data: customers, refetch: refetchCustomers } = useQuery({
     queryKey: ["customers"],
     queryFn: getCustomers,
   });
@@ -111,12 +111,14 @@ function OrderPanel() {
     showLoading();
 
     if (customerTrx[activeTabIndex]?.money_change < 0) {
-      return toast({
+      toast({
         variant: "destructive",
         title: "Uang Kurang!",
         description: "Silahkan tambahkan uang",
         duration: 2500,
       });
+
+      return hideLoading();
     }
 
     const dataTrx = customerTrx[activeTabIndex];
@@ -164,6 +166,23 @@ function OrderPanel() {
   }, [customerTrx, activeTabIndex, navigate, toast]);
 
   // CUSTOMER MODAL START
+  const [searchCustomerQuery, setSearchCustomerQuery] = useState("");
+  const debouncedSearchCustomerQuery = useDebounce(searchCustomerQuery, 500);
+  const filteredCustomers = customers?.data?.data?.filter((item) => {
+    // Concatenate first_name and last_name to allow for combined searches
+    const fullName = `${item.first_name || ''} ${item.last_name || ''}`.trim().toLowerCase();
+    // Check if the search query matches the first name, last name, or phone number
+    const firstNameMatches = item.first_name && item.first_name.toLowerCase().includes(debouncedSearchCustomerQuery.toLowerCase());
+    const lastNameMatches = item.last_name && item.last_name.toLowerCase().includes(debouncedSearchCustomerQuery.toLowerCase());
+    // Check if the concatenated full name matches the search query
+    const fullNameMatches = fullName.includes(debouncedSearchCustomerQuery.toLowerCase());
+    // Ensure item.phone is a string before checking for a match
+    const phoneMatches = item.phone && String(item.phone).toLowerCase().includes(debouncedSearchCustomerQuery.toLowerCase());
+    // Return true if any of the conditions are met
+    return firstNameMatches || lastNameMatches || fullNameMatches || phoneMatches;
+  });
+
+
   interface Customer {
     id: number;
     first_name: string;
@@ -209,17 +228,54 @@ function OrderPanel() {
   };
 
   // adding new customer start
+  const splitCustomerName = (fullName) => {
+    const nameParts = fullName.trim().split(" ");
+    const first_name = nameParts[0]; // First word as the first name
+    const last_name = nameParts.slice(1).join(" "); // Join the remaining words as the last name
+
+    return { first_name, last_name };
+  };
+
   const handleSaveNewCustomer = () => {
     if (newCustomerName && newCustomerPhone) {
-      updateCustomerTrx(newCustomerName);
-      setAddingNewCustomer(false);
+      const { first_name, last_name } = splitCustomerName(newCustomerName);
 
-      setNewCustomerName("");
-      setNewCustomerPhone("");
+      try {
+        postCustomer({
+          first_name,
+          last_name,
+          phone: newCustomerPhone,
+          customer_type: "admin"
+        })
+          .then((res) => {
+            console.log("res", res);
+            setAddingNewCustomer(false);
+            setNewCustomerName("");
+            setNewCustomerPhone("");
+            toast({
+              variant: "success",
+              title: "Customer berhasil ditambahkan!",
+              description: "",
+              duration: 2500,
+            });
+            refetchCustomers();
+          })
+          .catch((err) => {
+            console.log("err", err);
+          });
+      } catch (error) {
+        console.log("error", error);
+      }
     } else {
-      alert("Please enter name and phone number.");
+      toast({
+        variant: "destructive",
+        title: "Tambah customer gagal!",
+        description: "Silahkan lengkapi data customer",
+        duration: 2500,
+      });
     }
   };
+
 
   const handleDiscardNewCustomer = () => {
     setNewCustomerName("");
@@ -230,6 +286,14 @@ function OrderPanel() {
   // CUSTOMER MODAL END
 
   // ITEMS MODAL START
+  const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+  const filteredItems = items?.data?.data?.filter((item) => {
+    const nameMatches = item.name && item.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase());
+    const barcodeMatches = item.barcode && item.barcode.toLowerCase().includes(debouncedSearchQuery.toLowerCase());
+    return nameMatches || barcodeMatches;
+  });
+
   const handleItemClick = (item: Item) => {
     const isDuplicate = activeTabItems.some((i) => i.barcode === item.barcode);
 
@@ -246,26 +310,40 @@ function OrderPanel() {
   };
 
   const handleApplyItems = () => {
+    // Create a copy of the current customerTrx
     const newCustomerTrx = [...customerTrx];
+    // Check if activeTabIndex is valid
+    if (!newCustomerTrx[activeTabIndex]) {
+      console.error(`Invalid activeTabIndex: ${activeTabIndex}`);
+      return; // Exit the function if the index is invalid
+    }
+    // Ensure items exists in the active tab
+    if (!Array.isArray(newCustomerTrx[activeTabIndex].items)) {
+      console.error(`Items is not an array at activeTabIndex: ${activeTabIndex}`);
+      newCustomerTrx[activeTabIndex].items = []; // Initialize items if it's not an array
+    }
+    // Get existing item barcodes
     const existingItems = newCustomerTrx[activeTabIndex].items.map(
       (item) => item.barcode
     );
+    // Filter items to add
     const itemsToAdd = selectedItems.filter(
       (item) => !existingItems.includes(item.barcode)
     );
-
-    // Manually add items
+    // Add items to the transaction
     itemsToAdd.forEach((item) => {
       const newItem = { ...item, qty: 1 };
       newCustomerTrx[activeTabIndex].items.push(newItem);
     });
 
+    // Update state
     setCustomerTrx(newCustomerTrx);
     setSelectedItems([]); // Reset selected items
     setEnterCount(0); // Reset enterCount after applying items
 
     openSearchItemModal();
   };
+
 
   const handleDeleteAllItems = () => {
     const newCustomerTrx = [...customerTrx];
@@ -374,18 +452,18 @@ function OrderPanel() {
 
       // Other key handling logic
       switch (event.key) {
-        case "C":
-          if (event.shiftKey) {
-            openCustomerModal();
-          }
-          break;
-        case "c":
+        // case "C":
+        //   if (event.shiftKey) {
+        //     openCustomerModal();
+        //   }
+        //   break;
+        case "c" && !open.customer:
           handlePaymentMethodChange("cash");
           break;
-        case "t":
+        case "t" && !open.customer:
           handlePaymentMethodChange("transfer");
           break;
-        case "b":
+        case "b" && !open.customer:
           handlePaymentMethodChange("bon");
           break;
         case "j":
@@ -477,7 +555,10 @@ function OrderPanel() {
                     cmdk-input-wrapper="">
                     <Search className="w-4 h-4 mr-2 opacity-50 shrink-0" />
                     <input
+                      type="text"
                       placeholder="Cari customer..."
+                      value={searchCustomerQuery}
+                      onChange={(e) => setSearchCustomerQuery(e.target.value)}
                       className="flex w-full py-3 text-sm bg-transparent rounded-md outline-none h-11 placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
                     />
                   </div>
@@ -498,14 +579,14 @@ function OrderPanel() {
                   <Input
                     type="text"
                     placeholder="Nama customer"
-                    value={newCustomerName}
+                    value={newCustomerName || ""}
                     onChange={(e) => setNewCustomerName(e.target.value)}
                     className="w-full px-4 py-3 mt-2 text-sm bg-transparent border-b border-gray-400 focus:outline-none focus:border-blue-500"
                   />
                   <Input
                     type="text"
                     placeholder="Nomor telepon"
-                    value={newCustomerPhone}
+                    value={newCustomerPhone || ""}
                     onChange={(e) => setNewCustomerPhone(e.target.value)}
                     className="w-full px-4 py-3 mt-2 text-sm bg-transparent border-b border-gray-400 focus:outline-none focus:border-blue-500"
                   />
@@ -515,9 +596,9 @@ function OrderPanel() {
 
               {!addingNewCustomer && (
                 <ScrollArea className="min-h-[300px]">
-                  {customers?.data?.data?.map((customer: Customer) => (
+                  {filteredCustomers?.map((customer: Customer, index) => (
                     <div
-                      key={customer.id}
+                      key={customer.id + index}
                       onClick={() => handleCustomerSelect(customer)}
                       className={`flex items-center justify-between p-2 hover:bg-secondary-gradient hover:text-white cursor-pointer`}>
                       <div className="flex items-center gap-3">
@@ -541,7 +622,7 @@ function OrderPanel() {
                         className="mr-4">
                         <input
                           type="radio"
-                          value={customer.first_name + " " + customer.last_name}
+                          value={customer.first_name + " " + customer.last_name || ""}
                           checked={
                             selectedCustomer?.first_name === customer.first_name
                           }
@@ -744,8 +825,11 @@ function OrderPanel() {
                 >
                   <Search className="w-4 h-4 mr-2 opacity-50 shrink-0" />
                   <input
+                    type="text"
                     placeholder="Cari item..."
                     className="flex w-full py-3 text-sm bg-transparent rounded-md outline-none h-11 placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                    value={searchQuery || ""}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
 
@@ -762,97 +846,92 @@ function OrderPanel() {
 
                 {/* Items Row */}
                 <ScrollArea className="h-[350px]">
-                  {items?.data?.data?.map((item, index) => {
-                    const isDuplicate = customerTrx?.[
-                      activeTabIndex
-                    ]?.items?.some((i) => i.barcode === item.barcode);
+                  {Array.isArray(filteredItems) && filteredItems.length > 0 ? ( // Check if filteredItems is an array and has items
+                    filteredItems.map((item, index) => {
+                      const isDuplicate = customerTrx?.[activeTabIndex]?.items?.some((i) => i.barcode === item.barcode);
 
-                    // Prevent adding item if item_stock is null
-                    const isStockUnavailable = item.item_stock === null;
+                      // Prevent adding item if item_stock is null
+                      const isStockUnavailable = item.item_stock === null;
 
-                    const itemKey = item.barcode || `item-${index}`;
+                      const itemKey = item.barcode || `item-${index}`;
 
-                    return (
-                      <div
-                        key={itemKey}
-                        onClick={() => !isStockUnavailable && handleItemClick(item)}
-                        className={`flex items-center justify-between p-2 hover:bg-gray-200 ${selectedItems.includes(item) ? "bg-gray-200" : ""
-                          } ${isDuplicate || isStockUnavailable ? "bg-gray-100 cursor-not-allowed" : "cursor-pointer"}`} // Disable click if stock is null
-                      >
-                        <div className="w-[1%]">
-                          <p>{index + 1}</p>
-                        </div>
+                      return (
+                        <div
+                          key={itemKey}
+                          onClick={() => !isStockUnavailable && handleItemClick(item)}
+                          className={`flex items-center justify-between p-2 hover:bg-gray-200 ${selectedItems.includes(item) ? "bg-gray-200" : ""
+                            } ${isDuplicate || isStockUnavailable ? "bg-gray-100 cursor-not-allowed" : "cursor-pointer"}`}
+                        >
+                          <div className="w-[1%]">
+                            <p>{index + 1}</p>
+                          </div>
 
-                        <div className="w-[40%]">
-                          <p className="text-[16px] font-bold">
-                            {item.name} |{" "}
-                            <span className="font-normal">{item.barcode}</span>
-                            {isDuplicate && (
-                              <span className="text-[#FF0000] text-sm font-normal">
-                                {" "}
-                                (Sudah dipilih)
-                              </span>
-                            )}
-
-                            {
-                              isStockUnavailable && (
+                          <div className="w-[40%]">
+                            <p className="text-[16px] font-bold">
+                              {item.name} |{" "}
+                              <span className="font-normal">{item.barcode}</span>
+                              {isDuplicate && (
+                                <span className="text-[#FF0000] text-sm font-normal">
+                                  {" "}
+                                  (Sudah dipilih)
+                                </span>
+                              )}
+                              {isStockUnavailable && (
                                 <span className="text-[#FF0000] text-sm font-normal">
                                   {" "}
                                   (Stok tidak tersedia)
                                 </span>
-                              )
-                            }
-                          </p>
-                          <p className="text-[16px] font-normal">
-                            {[item.brand, item.guarantee, item.type]
-                              .filter(Boolean) // filter out empty values
-                              .join(" | ")     // join the non-empty values with " | "
-                            }
-                          </p>
+                              )}
+                            </p>
+                            <p className="text-[16px] font-normal">
+                              {[item.brand, item.guarantee, item.type]
+                                .filter(Boolean) // Filter out empty values
+                                .join(" | ")}
+                            </p>
+                          </div>
 
-                        </div>
+                          <div className="w-[15%]">
+                            <p className="text-[16px] font-bold">
+                              {item.product_code ? item.product_code : ""}
+                            </p>
+                            <p className="text-[16px] font-normal">
+                              {item.product_code_updated_at ? formatDate(item.product_code_updated_at) : ""}
+                            </p>
+                          </div>
 
-                        <div className="w-[15%]">
-                          <p className="text-[16px] font-bold">
-                            {item.product_code ? item.product_code : ""}
-                          </p>
-                          <p className="text-[16px] font-normal">
-                            {item.product_code_updated_at ? formatDate(item.product_code_updated_at) : ""}
-                          </p>
-                        </div>
+                          <div className="w-[15%]">
+                            <p className="text-[16px] font-bold">
+                              {item.market ? item.market : ""}
+                            </p>
+                            <p className="text-[16px] font-normal">
+                              {item.market_updated_at ? formatDate(item.market_updated_at) : ""}
+                            </p>
+                          </div>
 
-                        <div className="w-[15%]">
-                          <p className="text-[16px] font-bold">
-                            {item.market ? item.market : ""}
-                          </p>
-                          <p className="text-[16px] font-normal">
-                            {item.market_updated_at ? formatDate(item.market_updated_at) : ""}
-                          </p>
-                        </div>
+                          <div className="w-[5%]">
+                            <p className="text-[16px] font-bold">
+                              {item.item_stock ? item.item_stock : 0}
+                            </p>
+                          </div>
 
-                        <div className="w-[5%]">
-                          <p className="text-[16px] font-bold">
-                            {item.item_stock ? item.item_stock : 0}
-                          </p>
-                        </div>
+                          <div className="w-[5%]">
+                            <p className="text-[16px] font-bold">{item.rak}</p>
+                          </div>
 
-                        <div className="w-[5%]">
-                          <p className="text-[16px] font-bold">{item.rak}</p>
+                          <div className="w-[5%]">
+                            <Checkbox
+                              disabled={isDuplicate || isStockUnavailable}
+                              checked={selectedItems.includes(item)}
+                              onChange={() => !isStockUnavailable && handleItemClick(item)}
+                              className={`mr-4 cursor-pointer ${isDuplicate || isStockUnavailable ? "hidden" : ""}`}
+                            />
+                          </div>
                         </div>
-
-                        <div className="w-[5%]">
-                          <Checkbox
-                            disabled={isDuplicate || isStockUnavailable}
-                            checked={selectedItems.includes(item)}
-                            onChange={() =>
-                              !isStockUnavailable && handleItemClick(item)
-                            }
-                            className={`mr-4 cursor-pointer`, isDuplicate || isStockUnavailable ? "hidden" : ""}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  ) : (
+                    <p>No items found</p> // Optional: display a message when no items are available
+                  )}
                 </ScrollArea>
 
                 <DialogFooter>

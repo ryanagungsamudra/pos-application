@@ -6,8 +6,20 @@ const tabLimit = 2;
 
 function Breadcrumb() {
   const { tabs, setTabs, customerTrx, setCustomerTrx } = useAppContext();
-  const [nextId, setNextId] = useState(2); // Initialize next ID counter
+  const [nextId, setNextId] = useState(2);
   const [dateTime, setDateTime] = useState(new Date());
+
+  // Define the default customer transaction
+  const defaultCustomerTransaction = {
+    items: [],
+    customer: "Reguler",
+    description: "",
+    payment_method: "cash",
+    bon_duration: 0,
+    total: 0,
+    cash: 0,
+    money_change: 0,
+  };
 
   const addTab = () => {
     if (tabs.length >= tabLimit) {
@@ -23,7 +35,8 @@ function Breadcrumb() {
 
     const updatedTabs = tabs.map((tab) => ({ ...tab, active: false })); // Deactivate all other tabs
     setTabs([...updatedTabs, newTab]);
-    setNextId(nextId + 1); // Increment nextId for the next tab
+    setCustomerTrx([...customerTrx, defaultCustomerTransaction]);
+    setNextId(nextId);
   };
 
   const removeTab = (idToRemove: number) => {
@@ -119,9 +132,8 @@ function Breadcrumb() {
         {tabs.map((tab) => (
           <div
             key={tab.id}
-            className={`flex ${
-              tab.active ? "bg-[#464343]" : "bg-[#CECFD2]"
-            } gap-2 justify-between items-center px-2 w-[291px] h-[31px] cursor-pointer`}
+            className={`flex ${tab.active ? "bg-[#464343]" : "bg-[#CECFD2]"
+              } gap-2 justify-between items-center px-2 w-[291px] h-[31px] cursor-pointer`}
             onClick={() => switchTab(tab.id)}>
             <div className="flex items-center gap-2">
               <List
@@ -132,7 +144,7 @@ function Breadcrumb() {
                 {tab.label}
               </p>
             </div>
-            {tab.active && tabs.length > 1 && (
+            {tab.active && tabs.length > 1 && tab.id === tabs[1].id && (
               <X
                 size={20}
                 className="text-white cursor-pointer"
@@ -142,6 +154,7 @@ function Breadcrumb() {
                 }}
               />
             )}
+
           </div>
         ))}
 

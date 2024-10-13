@@ -144,7 +144,7 @@ const CustomTableRow = ({
             <p className="font-normal text-[20px]">Rp</p>
             <InputNumeric
               ref={inputRef}
-              value={rowData.unit_price}
+              value={rowData.unit_price || 0}
               onChange={handleUnitPriceChange}
               className=" w-[110px] font-normal border-[0.4px] border-solid border-black text-[20px]"
             />

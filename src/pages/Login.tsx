@@ -123,7 +123,7 @@ const Login: React.FC = () => {
                 type="email"
                 className="w-full px-3 py-2 mb-5 text-[14px] border rounded-lg outline-none dark:border-gray-500 dark:bg-gray-900 focus:ring-0 focus:ring-offset-0 focus:border-[#079457] focus:border-[1.5px]"
                 placeholder="Email"
-                value={email}
+                value={email || ""}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
@@ -136,7 +136,7 @@ const Login: React.FC = () => {
               type="password"
               className="w-full px-3 py-2 mb-5 text-[14px] border rounded-lg outline-none dark:border-gray-500 dark:bg-gray-900 focus:ring-0 focus:ring-offset-0 focus:border-[#079457] focus:border-[1.5px]"
               placeholder="••••••••"
-              value={password}
+              value={password || ""}
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>

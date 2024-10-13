@@ -111,7 +111,7 @@ const BarcodeScanner: React.FC = () => {
     <div>
       <input
         type="text"
-        value={barcode}
+        value={barcode || ""}
         onChange={handleInputChange}
         ref={inputRef}
         placeholder="Scan barcode here"
