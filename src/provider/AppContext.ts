@@ -18,6 +18,8 @@ export interface AppContextType {
   animation: "blue" | "green";
   enterCount: number;
   setEnterCount: React.Dispatch<React.SetStateAction<number>>;
+  isKeyboardEnterPressed: boolean;
+  setIsKeyboardEnterPressed: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export interface User {

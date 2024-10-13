@@ -59,6 +59,7 @@ function OrderPanel() {
     isBarcodeScannerActive,
     enterCount,
     setEnterCount,
+    isKeyboardEnterPressed
   } = useAppContext();
   // Find the active tab
   const activeTabIndex = useMemo(() => {
@@ -421,6 +422,10 @@ function OrderPanel() {
   const [cashFocused, setCashFocused] = useState(false); // To track if cashRef has been focused
 
   useEffect(() => {
+    if (!isKeyboardEnterPressed) {
+      return
+    }
+
     const hasZeroUnitPrice = itemsActive.some(
       (item) => item.unit_price === 0 || !item.unit_price
     );
@@ -440,10 +445,10 @@ function OrderPanel() {
         }
 
         // After focusing cashRef once, execute the rest of the logic
-        if (!open.dialog) {
+        if (!open.dialog && customerTrx[activeTabIndex].cash > 0) {
           checkoutRef.current?.click();
           setEnterPressedInDialog(true);
-        } else if (enterPressedInDialog) {
+        } else if (enterPressedInDialog && customerTrx[activeTabIndex].cash > 0) {
           handleSubmit();
         } else {
           setEnterPressedInDialog(true);
@@ -488,6 +493,7 @@ function OrderPanel() {
     handleSubmit,
     cashFocused, // Add cashFocused as a dependency
     itemsActive,
+    isKeyboardEnterPressed
   ]);
 
   useEffect(() => {
@@ -858,7 +864,7 @@ function OrderPanel() {
                       return (
                         <div
                           key={itemKey}
-                          onClick={() => !isStockUnavailable && handleItemClick(item)}
+                          onClick={() => handleItemClick(item)}
                           className={`flex items-center justify-between p-2 hover:bg-gray-200 ${selectedItems.includes(item) ? "bg-gray-200" : ""
                             } ${isDuplicate || isStockUnavailable ? "bg-gray-100 cursor-not-allowed" : "cursor-pointer"}`}
                         >

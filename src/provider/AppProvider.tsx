@@ -28,6 +28,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
   // Loading state and logic
   const [isBarcodeScannerActive, setIsBarcodeScannerActive] = useState(true);
   const [enterCount, setEnterCount] = useState(0);
+  const [isKeyboardEnterPressed, setIsKeyboardEnterPressed] = useState(true);
 
   const [isLoading, setIsLoading] = useState(false);
   const [animation, setAnimation] = useState<"blue" | "green">("blue");
@@ -64,6 +65,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
         animation,
         enterCount,
         setEnterCount,
+        isKeyboardEnterPressed,
+        setIsKeyboardEnterPressed,
       }}>
       {children}
     </AppContext.Provider>

@@ -4,6 +4,7 @@ import { useAppContext } from "@/provider/useAppContext";
 import { getItems } from "@/config/https/item";
 import IconBarcodeOn from "@/assets/icons/BarcodeOn.svg";
 import IconBarcodeOff from "@/assets/icons/BarcodeOff.svg";
+import { useDebounce } from "@/lib/utils";
 
 const BarcodeScanner: React.FC = () => {
   const {
@@ -11,11 +12,13 @@ const BarcodeScanner: React.FC = () => {
     setCustomerTrx,
     isBarcodeScannerActive,
     setIsBarcodeScannerActive,
-    setEnterCount,
+    isKeyboardEnterPressed,
+    setIsKeyboardEnterPressed
   } = useAppContext();
   const [barcode, setBarcode] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const inactivityTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [lastKeyPressTime, setLastKeyPressTime] = useState<number | null>(null);
 
   const { data: items } = useQuery({
     queryKey: ["items"],
@@ -32,7 +35,6 @@ const BarcodeScanner: React.FC = () => {
         );
         if (item) {
           setBarcode("");
-
           setCustomerTrx((prevTrx) => {
             const newCustomerTrx = [...prevTrx];
             const currentItems = newCustomerTrx[activeTabIndex].items;
@@ -55,11 +57,15 @@ const BarcodeScanner: React.FC = () => {
     [items, activeTabIndex, setCustomerTrx]
   );
 
+  // Use the debounce hook
+  const debouncedBarcode = useDebounce(barcode, 300); // Adjust delay as needed
+
+  // Effect to handle debounced barcode
   useEffect(() => {
-    if (barcode) {
-      handleBarcodeMatch(barcode);
+    if (debouncedBarcode) {
+      handleBarcodeMatch(debouncedBarcode);
     }
-  }, [barcode, handleBarcodeMatch]);
+  }, [debouncedBarcode, handleBarcodeMatch]);
 
   useEffect(() => {
     if (inputRef.current && isBarcodeScannerActive) {
@@ -73,12 +79,11 @@ const BarcodeScanner: React.FC = () => {
     }
     inactivityTimeoutRef.current = setTimeout(() => {
       setIsBarcodeScannerActive(true);
-      setEnterCount(0);
       if (inputRef.current) {
         inputRef.current.focus();
       }
     }, 3000);
-  }, [setIsBarcodeScannerActive, setEnterCount]);
+  }, [setIsBarcodeScannerActive]);
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value.trim();
@@ -106,6 +111,29 @@ const BarcodeScanner: React.FC = () => {
       document.removeEventListener("mousedown", handleUserActivity);
     };
   }, [resetInactivityTimeout]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Enter") {
+        const isScannerInput = barcode.length > 0;
+
+        if (isScannerInput) {
+          console.log("Detected barcode scanner input");
+          setIsKeyboardEnterPressed(false); // Reset keyboard flag
+          setIsBarcodeScannerActive(true);
+        } else {
+          console.log("Detected keyboard input");
+          setIsKeyboardEnterPressed(true); // Set keyboard flag
+          setIsBarcodeScannerActive(false);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [barcode, lastKeyPressTime, setIsKeyboardEnterPressed]);
 
   return (
     <div>

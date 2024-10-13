@@ -187,7 +187,7 @@ const areEqual = (
 const MemoizedCustomTableRow = memo(CustomTableRow, areEqual);
 
 function TableList({ customerPanel = false }: { customerPanel?: boolean }) {
-  const { tabs, customerTrx, setCustomerTrx, enterCount, setEnterCount } = useAppContext();
+  const { tabs, customerTrx, setCustomerTrx, enterCount, setEnterCount, isKeyboardEnterPressed } = useAppContext();
 
   // Active tab and index
   const activeTab = useMemo(() => tabs.find((tab) => tab.active), [tabs]);
@@ -238,6 +238,10 @@ function TableList({ customerPanel = false }: { customerPanel?: boolean }) {
 
   // Handle Enter key for unit price input navigation
   useEffect(() => {
+    if (!isKeyboardEnterPressed) {
+      return
+    }
+
     const handleKeyDown = (event: KeyboardEvent) => {
       // Check for zero unit price on every keydown
       const hasZeroUnitPrice = items.some(
@@ -263,7 +267,7 @@ function TableList({ customerPanel = false }: { customerPanel?: boolean }) {
 
     // Cleanup event listener
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [enterCount, items, setEnterCount]);
+  }, [enterCount, items, setEnterCount, isKeyboardEnterPressed]);
 
   return (
     <div className="flex flex-col border-b-4">
