@@ -12,13 +12,11 @@ const BarcodeScanner: React.FC = () => {
     setCustomerTrx,
     isBarcodeScannerActive,
     setIsBarcodeScannerActive,
-    isKeyboardEnterPressed,
     setIsKeyboardEnterPressed
   } = useAppContext();
   const [barcode, setBarcode] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const inactivityTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [lastKeyPressTime, setLastKeyPressTime] = useState<number | null>(null);
 
   const { data: items } = useQuery({
     queryKey: ["items"],
@@ -133,7 +131,7 @@ const BarcodeScanner: React.FC = () => {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [barcode, lastKeyPressTime, setIsKeyboardEnterPressed]);
+  }, [barcode, setIsKeyboardEnterPressed]);
 
   return (
     <div>
