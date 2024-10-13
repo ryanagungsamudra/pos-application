@@ -94,9 +94,16 @@ const CustomTableRow = ({
             </span>
           </p>
           <p className="text-[#000] w-full text-[20px]">
-            {!customerPanel ? rowData.brand + " |" : ""} {rowData.guarantee} |{" "}
-            {!customerPanel ? rowData.type : rowData.barcode}
+            {[
+              !customerPanel ? rowData.brand : null,
+              rowData.guarantee,
+              !customerPanel ? rowData.type : rowData.barcode
+            ]
+              .filter(Boolean)  // Filter out empty or null values
+              .join(" | ")      // Join the non-empty values with " | "
+            }
           </p>
+
         </div>
       </div>
       {!customerPanel && (
@@ -229,25 +236,34 @@ function TableList({ customerPanel = false }: { customerPanel?: boolean }) {
     updateItems(items.filter((_, i) => i !== index));
   }, [items, updateItems]);
 
-  // Handle enter key for unit price
+  // Handle Enter key for unit price input navigation
   useEffect(() => {
+    // Check if any item has a unit price of 0 or is undefined
     const hasZeroUnitPrice = items.some((item) => item.unit_price === 0 || !item.unit_price);
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      // Check if the Enter key is pressed and if there is any item with zero or no unit price
       if (event.key === "Enter" && hasZeroUnitPrice) {
-        if (inputRefs.current[enterCount]) {
-          inputRefs.current[enterCount]?.focus();
-          inputRefs.current[enterCount]?.select();
+        const currentInput = inputRefs.current[enterCount];
+
+        // Ensure the input exists before focusing and selecting
+        if (currentInput) {
+          currentInput.focus();
+          currentInput.select();
         }
+
+        // Update the enterCount, cycling back to 0 if it reaches the end of the items array
         setEnterCount((prevCount) => (prevCount + 1) % items.length);
       }
     };
 
+    // Add event listener for keydown
     window.addEventListener("keydown", handleKeyDown);
 
-    // Cleanup function to remove the event listener
+    // Cleanup function to remove the event listener when component unmounts or dependencies change
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [enterCount, setEnterCount, items]);
+  }, [enterCount, items]); // Removed unnecessary dependencies like setEnterCount
+
 
 
   return (

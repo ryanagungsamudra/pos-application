@@ -778,8 +778,12 @@ function OrderPanel() {
                             }
                           </p>
                           <p className="text-[16px] font-normal">
-                            {item.brand} | {item.guarantee} | {item.type}
+                            {[item.brand, item.guarantee, item.type]
+                              .filter(Boolean) // filter out empty values
+                              .join(" | ")     // join the non-empty values with " | "
+                            }
                           </p>
+
                         </div>
 
                         <div className="w-[15%]">
