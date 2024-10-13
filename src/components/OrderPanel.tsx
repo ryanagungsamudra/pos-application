@@ -58,6 +58,7 @@ function OrderPanel() {
     hideLoading,
     isBarcodeScannerActive,
     enterCount,
+    setEnterCount,
   } = useAppContext();
   // Find the active tab
   const activeTabIndex = useMemo(() => {
@@ -238,6 +239,9 @@ function OrderPanel() {
       } else {
         setSelectedItems([...selectedItems, item]);
       }
+
+      // Update enterCount if an item is clicked
+      setEnterCount(0); // Reset enterCount when an item is clicked to start from the first input
     }
   };
 
@@ -250,10 +254,7 @@ function OrderPanel() {
       (item) => !existingItems.includes(item.barcode)
     );
 
-    // add entire items
-    // newCustomerTrx[activeTabIndex].items.push(...itemsToAdd);
-
-    // manually add items
+    // Manually add items
     itemsToAdd.forEach((item) => {
       const newItem = { ...item, qty: 1 };
       newCustomerTrx[activeTabIndex].items.push(newItem);
@@ -261,6 +262,7 @@ function OrderPanel() {
 
     setCustomerTrx(newCustomerTrx);
     setSelectedItems([]); // Reset selected items
+    setEnterCount(0); // Reset enterCount after applying items
 
     openSearchItemModal();
   };
@@ -334,13 +336,32 @@ function OrderPanel() {
   };
 
   const itemsActive = customerTrx[activeTabIndex]?.items || [];
+
+
   // === UseEffect === //
+  const cashRef = useRef<HTMLInputElement>(null);
+  const [cashFocused, setCashFocused] = useState(false); // To track if cashRef has been focused
+
   useEffect(() => {
     const hasZeroUnitPrice = itemsActive.some(
       (item) => item.unit_price === 0 || !item.unit_price
     );
+
+    if (hasZeroUnitPrice) {
+      setCashFocused(false);
+    }
+
     const handleKeyPress = (event: KeyboardEvent) => {
       if (event.key === "Enter" && !hasZeroUnitPrice) {
+        // Focus and select cashRef only once
+        if (!cashFocused) {
+          cashRef.current?.focus();
+          cashRef.current?.select();
+          setCashFocused(true); // Mark cashRef as focused
+          return; // Prevent further logic from executing the first time
+        }
+
+        // After focusing cashRef once, execute the rest of the logic
         if (!open.dialog) {
           checkoutRef.current?.click();
           setEnterPressedInDialog(true);
@@ -351,6 +372,7 @@ function OrderPanel() {
         }
       }
 
+      // Other key handling logic
       switch (event.key) {
         case "C":
           if (event.shiftKey) {
@@ -386,6 +408,8 @@ function OrderPanel() {
     enterPressedInDialog,
     handlePaymentMethodChange,
     handleSubmit,
+    cashFocused, // Add cashFocused as a dependency
+    itemsActive,
   ]);
 
   useEffect(() => {
@@ -746,9 +770,11 @@ function OrderPanel() {
                     // Prevent adding item if item_stock is null
                     const isStockUnavailable = item.item_stock === null;
 
+                    const itemKey = item.barcode || `item-${index}`;
+
                     return (
                       <div
-                        key={item.barcode}
+                        key={itemKey}
                         onClick={() => !isStockUnavailable && handleItemClick(item)}
                         className={`flex items-center justify-between p-2 hover:bg-gray-200 ${selectedItems.includes(item) ? "bg-gray-200" : ""
                           } ${isDuplicate || isStockUnavailable ? "bg-gray-100 cursor-not-allowed" : "cursor-pointer"}`} // Disable click if stock is null
@@ -882,6 +908,7 @@ function OrderPanel() {
                 <div className="flex gap-2">
                   <p className="text-[20px] font-normal">Rp</p>
                   <InputNumeric
+                    ref={cashRef}
                     value={
                       customerTrx[activeTabIndex].cash
                         ? customerTrx[activeTabIndex].cash

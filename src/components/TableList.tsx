@@ -238,11 +238,12 @@ function TableList({ customerPanel = false }: { customerPanel?: boolean }) {
 
   // Handle Enter key for unit price input navigation
   useEffect(() => {
-    // Check if any item has a unit price of 0 or is undefined
-    const hasZeroUnitPrice = items.some((item) => item.unit_price === 0 || !item.unit_price);
-
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Check if the Enter key is pressed and if there is any item with zero or no unit price
+      // Check for zero unit price on every keydown
+      const hasZeroUnitPrice = items.some(
+        (item) => item.unit_price === 0 || !item.unit_price
+      );
+
       if (event.key === "Enter" && hasZeroUnitPrice) {
         const currentInput = inputRefs.current[enterCount];
 
@@ -260,11 +261,9 @@ function TableList({ customerPanel = false }: { customerPanel?: boolean }) {
     // Add event listener for keydown
     window.addEventListener("keydown", handleKeyDown);
 
-    // Cleanup function to remove the event listener when component unmounts or dependencies change
+    // Cleanup event listener
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [enterCount, items]); // Removed unnecessary dependencies like setEnterCount
-
-
+  }, [enterCount, items, setEnterCount]);
 
   return (
     <div className="flex flex-col border-b-4">
