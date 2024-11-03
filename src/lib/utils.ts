@@ -123,3 +123,44 @@ export const useDebounce = (value, delay) => {
 
   return debouncedValue;
 };
+
+export const getMaskedNumber = (
+  inputNumber,
+  category,
+  codeSettingModal,
+  codeSettingPasaran
+) => {
+  const upperCaseValue = String(inputNumber).toUpperCase();
+  let maskedValue = "";
+  let i = 0;
+
+  const codeSetting =
+    category === "modal" ? codeSettingModal : codeSettingPasaran;
+
+  while (i < upperCaseValue.length) {
+    if (
+      upperCaseValue.slice(i, i + 3) === "000" &&
+      codeSetting["000"] !== undefined
+    ) {
+      maskedValue += codeSetting["000"];
+      i += 3;
+    } else if (
+      upperCaseValue.slice(i, i + 2) === "00" &&
+      codeSetting["00"] !== undefined
+    ) {
+      maskedValue += codeSetting["00"];
+      i += 2;
+    } else if (upperCaseValue[i] === "0" && codeSetting["0"] !== undefined) {
+      maskedValue += codeSetting["0"];
+      i += 1;
+    } else {
+      maskedValue +=
+        codeSetting[upperCaseValue[i]] !== undefined
+          ? codeSetting[upperCaseValue[i]]
+          : upperCaseValue[i];
+      i += 1;
+    }
+  }
+
+  return maskedValue;
+};

@@ -36,6 +36,7 @@ import { Item } from "@/provider/AppContext";
 import { InputNumeric } from "./ui/input-numeric";
 import { postTransaction } from "@/config/https/transaction";
 import Invoice from "./Invoice";
+import { useGetCodes } from "@/hooks/useGetCodes";
 
 function OrderPanel() {
   const navigate = useNavigate();
@@ -61,6 +62,10 @@ function OrderPanel() {
     setEnterCount,
     isKeyboardEnterPressed
   } = useAppContext();
+
+  // useGetcodes
+  const { getMaskedNumber } = useGetCodes();
+
   // Find the active tab
   const activeTabIndex = useMemo(() => {
     const activeTab = tabs.find((tab) => tab.active);
@@ -445,7 +450,7 @@ function OrderPanel() {
         }
 
         // After focusing cashRef once, execute the rest of the logic
-        if (!open.dialog && customerTrx[activeTabIndex].cash > 0) {
+        if (!open.dialog && customerTrx[activeTabIndex].cash > 0 && isKeyboardEnterPressed && !isBarcodeScannerActive) {
           checkoutRef.current?.click();
           setEnterPressedInDialog(true);
         } else if (enterPressedInDialog && customerTrx[activeTabIndex].cash > 0) {
@@ -898,7 +903,7 @@ function OrderPanel() {
 
                           <div className="w-[15%]">
                             <p className="text-[16px] font-bold">
-                              {item.product_code ? item.product_code : ""}
+                              {item.product_code ? getMaskedNumber(item.product_code, "modal") : ""}
                             </p>
                             <p className="text-[16px] font-normal">
                               {item.product_code_updated_at ? formatDate(item.product_code_updated_at) : ""}
@@ -907,7 +912,7 @@ function OrderPanel() {
 
                           <div className="w-[15%]">
                             <p className="text-[16px] font-bold">
-                              {item.market ? item.market : ""}
+                              {item.market ? getMaskedNumber(item.market, "pasaran") : ""}
                             </p>
                             <p className="text-[16px] font-normal">
                               {item.market_updated_at ? formatDate(item.market_updated_at) : ""}

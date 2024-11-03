@@ -28,3 +28,19 @@ export const getItems = async () => {
   });
   return response;
 };
+
+export const getCodes = async (category) => {
+  const token = Cookies.get("token");
+
+  if (!token) {
+    throw new Error("No token found in cookies.");
+  }
+
+  const response = await axios.get(`${url}/api/codes?category=${category}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+  return response.data;
+};

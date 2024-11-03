@@ -6,9 +6,10 @@ import { useAppContext } from "@/provider/useAppContext";
 import Lottie from "lottie-react";
 import noDataAnimation from "@/assets/lottie/no-data.json";
 import { Item } from "@/provider/AppContext";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, getMaskedNumber } from "@/lib/utils";
 import { InputNumeric } from "./ui/input-numeric";
 import { useEffect, useRef, memo, useMemo, useCallback } from "react";
+import { useGetCodes } from "@/hooks/useGetCodes";
 
 const CustomTableHeader = ({
   customerPanel,
@@ -66,6 +67,7 @@ const CustomTableRow = ({
   onUpdate,
   inputRef,
 }: CustomTableRowProps) => {
+  const { getMaskedNumber } = useGetCodes();
   const bgColor = index % 2 === 0 ? "bg-[#DDEEFF]" : "bg-[#fff]";
 
   const handleQtyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -110,7 +112,10 @@ const CustomTableRow = ({
         <>
           <div className={`${columns.modal} p-2`}>
             <div className="flex flex-wrap">
-              <p className="font-bold text-[20px]">{rowData.product_code}</p>
+              <p className="font-bold text-[20px]">
+                {/* {rowData.product_code} */}
+                {getMaskedNumber(rowData.product_code, "modal") || ''}
+              </p>
               <p className="text-[#000] w-full text-[20px]">
                 {formatDate(rowData.product_code_updated_at)}
               </p>
@@ -118,7 +123,10 @@ const CustomTableRow = ({
           </div>
           <div className={`${columns.market} p-2`}>
             <div className="flex flex-wrap">
-              <p className="font-bold text-[20px]">{rowData.market || ''}</p>
+              <p className="font-bold text-[20px]">
+                {/* {rowData.market || ''} */}
+                {getMaskedNumber(rowData.market, "pasaran") || ''}
+              </p>
               <p className="text-[#000] w-full text-[20px]">
                 {rowData.market_updated_at ? formatDate(rowData.market_updated_at) : ''}
               </p>
