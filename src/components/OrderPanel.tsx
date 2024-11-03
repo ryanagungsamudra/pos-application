@@ -857,7 +857,7 @@ function OrderPanel() {
                       const isDuplicate = customerTrx?.[activeTabIndex]?.items?.some((i) => i.barcode === item.barcode);
 
                       // Prevent adding item if item_stock is null
-                      const isStockUnavailable = item.item_stock === null;
+                      const isStockUnavailable = item.item_stock === null || item.item_stock === 0;
 
                       const itemKey = item.barcode || `item-${index}`;
 
